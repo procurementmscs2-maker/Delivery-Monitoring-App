@@ -638,16 +638,27 @@
   .return-area-choice {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 5px;
+    margin-top: 6px;
   }
   .return-area-choice label {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.25;
     font-weight: 600;
   }
-  .return-area-choice input { margin-top: 3px; }
+  .return-area-choice input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    flex: 0 0 13px;
+  }
+  .return-area-choice .helper-filipino {
+    font-size: 10px;
+    line-height: 1.25;
+  }
 
   .workflow-photo-help,
   .workflow-photo-names {
