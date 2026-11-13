@@ -3684,12 +3684,25 @@ function getAllowedStatusCorrections(record) {
       .withFailureHandler(function(error) {
         button.disabled = false;
         button.textContent =
-          currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+          currentTripAction === "REASSIGN"
+            ? "Reassign to New Trip"
+            : currentTripAction === "ADD_SCHEDULE"
+              ? "Add Schedule"
+              : "Create Trip";
 
-        setTripMessage(
-          error.message || "Unable to create the delivery trip.",
-          "error"
-        );
+        const errorMessage =
+          error && error.message
+            ? error.message
+            : "Unable to create the delivery trip.";
+
+        setTripMessage(errorMessage, "error");
+
+        if (
+          currentTripAction === "REASSIGN" &&
+          errorMessage.toUpperCase().includes("IN TRANSIT")
+        ) {
+          alert(errorMessage);
+        }
       })
       .createDeliveryTrip(
         currentSessionToken,
