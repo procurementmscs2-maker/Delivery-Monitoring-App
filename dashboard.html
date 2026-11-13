@@ -1154,6 +1154,61 @@
     #dashboardView .trip-invoice-list td:nth-child(6) { width: 13%; }
   }
 
+  /* Fluid sizing: typography and controls scale continuously with
+     the browser width instead of changing only at fixed breakpoints. */
+  #dashboardView {
+    --dashboard-font: clamp(11px, 0.9vw + 3px, 14px);
+    --dashboard-small-font: clamp(9px, 0.65vw + 2px, 12px);
+    --dashboard-heading-font: clamp(16px, 1.15vw + 5px, 22px);
+    --dashboard-cell-pad-y: clamp(5px, 0.55vw, 10px);
+    --dashboard-cell-pad-x: clamp(4px, 0.65vw, 10px);
+  }
+
+  #dashboardView .trip-group-title {
+    font-size: clamp(12px, 0.9vw + 5px, 15px);
+  }
+
+  #dashboardView .trip-group-subtitle,
+  #dashboardView .trip-summary,
+  #dashboardView .trip-progress {
+    font-size: var(--dashboard-small-font);
+  }
+
+  #dashboardView .trip-group-actions button,
+  #dashboardView .trip-toolbar button,
+  #dashboardView .trip-selection-toolbar button,
+  #dashboardView .delivery-card button,
+  #dashboardView .workflow-action-button,
+  #dashboardView .trip-depart-button {
+    font-size: var(--dashboard-small-font);
+    padding: clamp(5px, 0.55vw, 10px) clamp(7px, 0.8vw, 14px);
+  }
+
+  #dashboardView .trip-invoice-list {
+    table-layout: fixed;
+  }
+
+  #dashboardView .trip-invoice-list th,
+  #dashboardView .trip-invoice-list td {
+    font-size: var(--dashboard-font);
+    padding: var(--dashboard-cell-pad-y) var(--dashboard-cell-pad-x);
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  #dashboardView .trip-invoice-list th {
+    font-size: var(--dashboard-small-font);
+  }
+
+  @media (max-width: 1100px) {
+    #dashboardView {
+      --dashboard-font: clamp(8px, 0.82vw + 1.5px, 11px);
+      --dashboard-small-font: clamp(7px, 0.62vw + 1px, 9px);
+      --dashboard-cell-pad-y: clamp(3px, 0.42vw, 6px);
+      --dashboard-cell-pad-x: clamp(3px, 0.45vw, 6px);
+    }
+  }
+
   /* Keep the invoice list in normal document flow at every
      viewport size. Only the browser page should scroll vertically. */
   #dashboardView #deliverySection > .delivery-card-list,
