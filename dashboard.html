@@ -994,8 +994,8 @@
     position: static !important;
   }
 
-  #dashboardView #deliverySection > .delivery-card-list {
-    display: block !important;
+  #dashboardView #deliverySection:not(.trip-group-view) > .delivery-card-list {
+    display: none !important;
     flex: 0 0 auto !important;
     height: auto !important;
     max-height: none !important;
@@ -1021,6 +1021,15 @@
     overflow-y: visible !important;
     overscroll-behavior: auto !important;
     position: static !important;
+  }
+
+  /* Preserve the existing desktop table/card mode switching. */
+  #dashboardView #deliverySection.trip-group-view > .delivery-card-list {
+    display: block !important;
+  }
+
+  #dashboardView #deliverySection.trip-group-view > .table-wrapper {
+    display: none !important;
   }
 
   @media (max-width: 650px) {
