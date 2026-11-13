@@ -659,6 +659,18 @@
     font-size: 10px;
     line-height: 1.25;
   }
+  /* Prevent the browser's oblong focus highlight around a clicked choice. */
+  .return-area-choice label,
+  .return-area-choice label:focus,
+  .return-area-choice label:focus-within {
+    outline: none;
+    box-shadow: none;
+  }
+  .return-area-choice input:focus,
+  .return-area-choice input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
 
   .workflow-photo-help,
   .workflow-photo-names {
