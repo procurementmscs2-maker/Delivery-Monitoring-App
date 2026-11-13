@@ -2016,8 +2016,23 @@
 
     const showAudit = view === "audit";
 
-    recordsSection.style.display = showAudit ? "none" : "flex";
-    auditSection.style.display = showAudit ? "flex" : "none";
+    // Helper dashboard: enforce the active tab against legacy layout CSS.
+    // The natural-scroll layout must not force both sections to remain visible.
+    if (isHelperAccount()) {
+      recordsSection.style.setProperty(
+        "display",
+        showAudit ? "none" : "flex",
+        "important"
+      );
+      auditSection.style.setProperty(
+        "display",
+        showAudit ? "flex" : "none",
+        "important"
+      );
+    } else {
+      recordsSection.style.display = showAudit ? "none" : "flex";
+      auditSection.style.display = showAudit ? "flex" : "none";
+    }
 
     recordsButton.classList.toggle("active", !showAudit);
     auditButton.classList.toggle("active", showAudit);
