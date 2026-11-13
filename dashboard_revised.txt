@@ -3,7 +3,7 @@
 <?!= include('DashboardStyles'); ?>
 
 <style>
-  .edit-assignment-button.icon-only {
+  .status-edit-button.icon-only {
     width: 34px;
     height: 34px;
     min-width: 34px;
@@ -2297,8 +2297,17 @@
       if (canShowEditStatus(record)) {
         const statusButton = document.createElement("button");
         statusButton.type = "button";
-        statusButton.className = "status-edit-button";
-        statusButton.textContent = "Edit Status";
+        const ongoingTab = currentDeliveryTab === "ongoing";
+        statusButton.className = ongoingTab
+          ? "status-edit-button icon-only"
+          : "status-edit-button";
+        if (ongoingTab) {
+          statusButton.innerHTML = "&#9998;";
+          statusButton.title = "Edit Status";
+          statusButton.setAttribute("aria-label", "Edit Status");
+        } else {
+          statusButton.textContent = "Edit Status";
+        }
         statusButton.addEventListener("click", function() {
           openReadyStatusModal(record);
         });
@@ -2422,8 +2431,17 @@
       if (canShowEditStatus(record)) {
         const statusButton = document.createElement("button");
         statusButton.type = "button";
-        statusButton.className = "status-edit-button";
-        statusButton.textContent = "Edit Status";
+        const ongoingTab = currentDeliveryTab === "ongoing";
+        statusButton.className = ongoingTab
+          ? "status-edit-button icon-only"
+          : "status-edit-button";
+        if (ongoingTab) {
+          statusButton.innerHTML = "&#9998;";
+          statusButton.title = "Edit Status";
+          statusButton.setAttribute("aria-label", "Edit Status");
+        } else {
+          statusButton.textContent = "Edit Status";
+        }
         statusButton.addEventListener("click", function() {
           openReadyStatusModal(record);
         });
@@ -2437,11 +2455,9 @@
       ) {
         const assignmentButton = document.createElement("button");
         assignmentButton.type = "button";
-        assignmentButton.className = "edit-assignment-button icon-only";
+        assignmentButton.className = "edit-assignment-button";
         assignmentButton.style.marginLeft = "6px";
-        assignmentButton.innerHTML = "&#9998;";
-        assignmentButton.title = "Edit Assignment";
-        assignmentButton.setAttribute("aria-label", "Edit Assignment");
+        assignmentButton.textContent = "Edit Assignment";
         assignmentButton.addEventListener("click", function() {
           openAssignmentEditor(record);
         });
@@ -2556,8 +2572,17 @@
       if (canShowEditStatus(record)) {
         const statusButton = document.createElement("button");
         statusButton.type = "button";
-        statusButton.className = "status-edit-button";
-        statusButton.textContent = "Edit Status";
+        const ongoingTab = currentDeliveryTab === "ongoing";
+        statusButton.className = ongoingTab
+          ? "status-edit-button icon-only"
+          : "status-edit-button";
+        if (ongoingTab) {
+          statusButton.innerHTML = "&#9998;";
+          statusButton.title = "Edit Status";
+          statusButton.setAttribute("aria-label", "Edit Status");
+        } else {
+          statusButton.textContent = "Edit Status";
+        }
         statusButton.addEventListener("click", function() {
           openReadyStatusModal(record);
         });
@@ -2571,10 +2596,8 @@
       ) {
         const assignmentButton = document.createElement("button");
         assignmentButton.type = "button";
-        assignmentButton.className = "edit-assignment-button mobile-edit-button icon-only";
-        assignmentButton.innerHTML = "&#9998;";
-        assignmentButton.title = "Edit Assignment";
-        assignmentButton.setAttribute("aria-label", "Edit Assignment");
+        assignmentButton.className = "edit-assignment-button mobile-edit-button";
+        assignmentButton.textContent = "Edit Assignment";
         assignmentButton.addEventListener("click", function() {
           openAssignmentEditor(record);
         });
