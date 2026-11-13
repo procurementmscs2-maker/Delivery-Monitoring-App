@@ -1047,6 +1047,95 @@
     }
   }
 
+
+
+  /* ==========================================================
+     RESPONSIVE WIDTH + NATURAL INVOICE PAGE FLOW
+     ========================================================== */
+
+  /* Use the available browser width instead of a narrow
+     centered dashboard, while keeping all children inside it. */
+  #dashboardView,
+  #dashboardView > .dashboard-container {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashboardView > .dashboard-container {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  #dashboardView #deliverySection,
+  #dashboardView #deliverySection > .delivery-card-list,
+  #dashboardView #deliverySection > .table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Do not let long labels or card contents force the whole
+     webpage wider than the browser window. */
+  #dashboardView .delivery-card,
+  #dashboardView .trip-group,
+  #dashboardView .trip-group-content,
+  #dashboardView .delivery-card-list {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* On a narrower PC window, switch the standard invoice view
+     from the wide 12-column table to the existing responsive
+     invoice cards. This avoids a horizontal table scrollbar. */
+  @media (max-width: 1100px) {
+    #dashboardView #deliverySection:not(.trip-group-view) > .table-wrapper {
+      display: none !important;
+    }
+
+    #dashboardView #deliverySection:not(.trip-group-view) > .delivery-card-list {
+      display: block !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+      flex: 0 0 auto !important;
+    }
+  }
+
+  /* Keep the invoice list in normal document flow at every
+     viewport size. Only the browser page should scroll vertically. */
+  #dashboardView #deliverySection > .delivery-card-list,
+  #dashboardView #deliverySection > .table-wrapper {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overscroll-behavior: auto !important;
+  }
+
+  @media (max-width: 760px) {
+    #dashboardView > .dashboard-container {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    #dashboardView .trip-group-content {
+      overflow-x: visible;
+    }
+
+    #dashboardView .trip-invoice-list {
+      min-width: 0;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    #dashboardView .trip-invoice-list th,
+    #dashboardView .trip-invoice-list td {
+      overflow-wrap: anywhere;
+    }
+  }
+
 </style>
 
 <div id="dashboardView" style="display:none;">
