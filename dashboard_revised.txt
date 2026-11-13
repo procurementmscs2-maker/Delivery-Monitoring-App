@@ -1,0 +1,4238 @@
+
+
+<?!= include('DashboardStyles'); ?>
+
+<style>
+  .edit-assignment-button.icon-only {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .workflow-action-button { border:0; border-radius:7px; padding:8px 11px; margin:3px; font-weight:700; cursor:pointer; background:#2563eb; color:#fff; }
+  .workflow-result-select { max-width:210px; padding:8px; margin:3px; border:1px solid #cbd5e1; border-radius:7px; }
+  .trip-depart-button { border:0; border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer; background:#15803d; color:#fff; }
+  .workflow-action-wrap { display:flex; flex-wrap:wrap; align-items:center; gap:3px; margin-top:6px; }
+  .trip-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .trip-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .primary-action-button,
+  .secondary-action-button,
+  .edit-trip-button {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .primary-action-button {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .secondary-action-button {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .edit-trip-button {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  .trip-selection-toolbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 13px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+
+  .trip-selection-toolbar.show {
+    display: flex;
+  }
+
+  .trip-selection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .invoice-select {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+  }
+
+  .trip-group {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .trip-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 15px;
+    background: #f8fafc;
+  }
+
+  .trip-group-title {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 15px;
+  }
+
+  .trip-group-subtitle {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+
+  .trip-group-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .trip-group-content {
+    padding: 12px;
+  }
+
+  .trip-group-content[hidden] {
+    display: none;
+  }
+
+  .trip-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 12px;
+  }
+
+  .trip-summary strong {
+    color: #1e293b;
+  }
+
+  .trip-invoice-list {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .trip-invoice-list th,
+  .trip-invoice-list td {
+    text-align: left;
+    padding: 11px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 12px;
+  }
+
+  .trip-invoice-list th {
+    color: #64748b;
+    background: #f8fafc;
+    font-size: 10px;
+    letter-spacing: .04em;
+  }
+
+  .trip-invoice-list tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .trip-progress {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 5px;
+  }
+
+  .trip-modal,
+  .assignment-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, .58);
+    padding: 20px;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .trip-modal.show,
+  .assignment-modal.show {
+    display: flex;
+  }
+
+  .trip-modal-content,
+  .assignment-modal-content {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    margin: auto;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+
+  .trip-modal-header,
+  .assignment-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .trip-modal-header h3,
+  .assignment-modal-header h3 {
+    margin: 3px 0 0;
+  }
+
+  .close-modal-button {
+    border: 0;
+    background: transparent;
+    font-size: 27px;
+    cursor: pointer;
+    color: #64748b;
+  }
+
+  .trip-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .trip-form-group,
+  .assignment-form-group {
+    margin-bottom: 15px;
+  }
+
+  .trip-form-group label,
+  .assignment-form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 7px;
+  }
+
+  .trip-form-group input,
+  .assignment-form-group input,
+  .trip-form-group textarea,
+  .assignment-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .trip-form-group textarea,
+  .assignment-form-group textarea {
+    min-height: 85px;
+    resize: vertical;
+  }
+
+  .trip-invoice-area-list {
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .trip-area-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(160px, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .trip-area-row:last-child {
+    border-bottom: 0;
+  }
+
+  .trip-area-invoice {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+  }
+
+  .trip-area-row input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+  }
+
+  .helper-checkbox-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 190px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+
+  .helper-checkbox-item {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 7px;
+    background: #f8fafc;
+    border-radius: 7px;
+    font-weight: 400 !important;
+    margin: 0 !important;
+  }
+
+  .helper-checkbox-item input {
+    width: auto !important;
+  }
+
+  .assignment-help-text {
+    color: #64748b;
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .required-mark {
+    color: #dc2626;
+  }
+
+  .trip-modal-actions,
+  .assignment-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 18px;
+  }
+
+  .cancel-assignment-button,
+  .save-assignment-button {
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 16px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .cancel-assignment-button {
+    background: #e2e8f0;
+    color: #334155;
+  }
+
+  .save-assignment-button {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .trip-message,
+  .assignment-message {
+    font-size: 12px;
+    margin-top: 12px;
+    color: #64748b;
+  }
+
+  .trip-message.error,
+  .assignment-message.error {
+    color: #dc2626;
+  }
+
+  .trip-message.success,
+  .assignment-message.success {
+    color: #15803d;
+  }
+
+  .empty-trip-state {
+    padding: 25px;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 10px;
+  }
+
+  .trip-invoice-mobile {
+    display: none;
+  }
+
+  /* Show Trip ID groups on desktop */
+  .delivery-section.trip-group-view .delivery-card-list {
+    display: block !important;
+  }
+
+  .delivery-section.trip-group-view .table-wrapper {
+    display: none !important;
+  }
+
+  /* AUDIT LOGS */
+
+  .audit-navigation {
+    display: flex;
+    gap: 8px;
+    margin: 18px 0;
+    flex-wrap: wrap;
+  }
+
+  .audit-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(130px, 1fr)) auto;
+    gap: 10px;
+    align-items: center;
+    margin: 18px 0;
+  }
+
+  .audit-filter-grid select,
+  .audit-filter-grid input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 11px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .audit-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .audit-table {
+    min-width: 1150px;
+  }
+
+  .audit-table td {
+    max-width: 250px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .audit-table td:first-child {
+    min-width: 145px;
+    white-space: nowrap;
+  }
+
+  .audit-action-badge {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .audit-action-badge.status-update {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .audit-action-badge.delete {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .audit-reason {
+    min-width: 180px;
+  }
+
+  .audit-user {
+    font-weight: 600;
+  }
+
+  .audit-empty {
+    padding: 25px;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 10px;
+    margin-top: 15px;
+  }
+
+  .audit-error {
+    color: #dc2626;
+    padding: 15px;
+  }
+
+  @media(max-width: 900px) {
+    .audit-filter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .audit-search {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media(max-width: 760px) {
+    .trip-form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .trip-area-row {
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+
+    .helper-checkbox-list {
+      grid-template-columns: 1fr;
+    }
+
+    .trip-modal-content,
+    .assignment-modal-content {
+      padding: 16px;
+    }
+
+    .trip-invoice-list {
+      min-width: 600px;
+    }
+
+    .trip-group-content {
+      overflow-x: auto;
+    }
+  }
+
+  @media(max-width: 500px) {
+    .audit-filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .audit-search {
+      grid-column: auto;
+    }
+  }
+
+
+  /* DELIVERY STATUS EDITOR */
+  .ready-status-button,
+  .status-edit-button {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 12px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .ready-status-button:hover,
+  .status-edit-button:hover {
+    background: #1d4ed8;
+  }
+
+  .ready-status-button:disabled,
+  .status-edit-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  .ready-status-modal-content {
+    max-width: 500px;
+  }
+
+  .ready-status-modal-content textarea,
+  .ready-status-modal-content select {
+    width: 100%;
+    min-height: 110px;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+  }
+
+  .ready-status-modal-content select {
+    min-height: 42px;
+    background: #fff;
+  }
+
+  .ready-status-message {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  .workflow-photo-label {
+    display: block;
+    margin: 8px 0 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .workflow-result-photos {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px dashed #94a3b8;
+    border-radius: 7px;
+    background: #f8fafc;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .helper-filipino {
+    display: none;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  body.helper-view .helper-filipino { display: block; }
+  .return-area-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .return-area-choice label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .return-area-choice input { margin-top: 3px; }
+
+  .workflow-photo-help,
+  .workflow-photo-names {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    margin: 3px 0 7px;
+    overflow-wrap: anywhere;
+  }
+
+  .workflow-result-remarks {
+    display: block;
+    width: 100%;
+    min-width: 180px;
+    min-height: 68px;
+    box-sizing: border-box;
+    padding: 9px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+    resize: vertical;
+    margin: 7px 0;
+  }
+
+
+
+  /* ==========================================================
+     MSCS PRIMEGOODS COMPANY HEADER
+     ========================================================== */
+  #dashboardView .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  #dashboardView .company-logo {
+    display: block;
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+    flex: 0 0 62px;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  #dashboardView .company-heading {
+    min-width: 0;
+  }
+
+  #dashboardView .company-heading h2 {
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 650px) {
+    #dashboardView .company-logo {
+      width: 46px;
+      height: 46px;
+      flex-basis: 46px;
+    }
+
+    #dashboardView .header-brand {
+      gap: 9px;
+    }
+
+    #dashboardView .company-heading h2 {
+      font-size: 18px;
+    }
+  }
+
+  /* ==========================================================
+     FIXED-TOP DASHBOARD LAYOUT
+     Keeps the dashboard controls stationary while the invoice
+     list scrolls independently, matching the Sales Dashboard.
+     ========================================================== */
+  #dashboardView {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  #dashboardView > .dashboard-container {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #dashboardView .dashboard-header,
+  #dashboardView .account-card,
+  #dashboardView > .dashboard-container > .audit-navigation {
+    flex: 0 0 auto;
+  }
+
+  #dashboardView #deliverySection {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #dashboardView #deliverySection > .delivery-heading,
+  #dashboardView #deliverySection > .delivery-tabs,
+  #dashboardView #deliverySection > .delivery-search,
+  #dashboardView #deliverySection > #tripSelectionToolbar,
+  #dashboardView #deliverySection > .records-toolbar {
+    flex: 0 0 auto;
+  }
+
+  #dashboardView #deliverySection > .table-wrapper {
+    display: block !important;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    position: relative;
+  }
+
+  /* Desktop uses the invoice table, never a scrolling card list. */
+  #dashboardView #deliverySection > .delivery-card-list {
+    display: none !important;
+  }
+
+  #dashboardView #auditLogsSection {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #dashboardView #auditLogsSection > .delivery-heading,
+  #dashboardView #auditLogsSection > .audit-filter-grid {
+    flex: 0 0 auto;
+  }
+
+  #dashboardView #auditLogsSection > .audit-table-wrapper {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    position: relative;
+  }
+
+  #dashboardView .audit-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  /* Main navigation bar and its delivery-category sub-navigation. */
+  #dashboardView .audit-navigation {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin: 10px 0 12px;
+    padding: 6px;
+    background: #eaf0f8;
+    border: 1px solid #dbe3ef;
+    border-radius: 12px;
+  }
+
+  #dashboardView .audit-navigation .delivery-tab {
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 18px;
+    background: transparent;
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .035em;
+  }
+
+  #dashboardView .audit-navigation .delivery-tab.active {
+    background: #fff;
+    color: #1d4ed8;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+  }
+
+  #dashboardView #deliverySection > .delivery-tabs {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0 0 9px;
+    border-bottom: 1px solid #dbe3ef;
+  }
+
+  #dashboardView #deliverySection > .delivery-tabs .delivery-tab {
+    border: 0;
+    border-radius: 7px;
+    padding: 9px 13px;
+    background: transparent;
+    color: #64748b;
+    font-weight: 650;
+  }
+
+  #dashboardView #deliverySection > .delivery-tabs .delivery-tab.active {
+    color: #1d4ed8;
+    background: #eaf2ff;
+  }
+
+  #dashboardView .delivery-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  #dashboardView .delivery-card button,
+  #dashboardView .delivery-card .workflow-action-button,
+  #dashboardView .delivery-card .trip-depart-button {
+    min-height: 42px;
+  }
+
+  #dashboardView .assignment-modal,
+  #dashboardView .trip-modal,
+  #dashboardView .delivery-result-modal {
+    overscroll-behavior: contain;
+  }
+
+  @media (max-width: 650px) {
+    #dashboardView {
+      min-height: 0;
+    }
+
+    #dashboardView > .dashboard-container {
+      padding-bottom: 0;
+    }
+
+    #dashboardView .dashboard-header {
+      gap: 8px;
+    }
+
+    #dashboardView .account-card {
+      margin-bottom: 8px;
+    }
+
+    #dashboardView .audit-navigation {
+      flex: 0 0 auto;
+    }
+
+    #dashboardView #deliverySection {
+      padding-bottom: 8px;
+    }
+
+    #dashboardView #deliverySection > .delivery-heading {
+      margin-bottom: 9px;
+    }
+
+    #dashboardView #deliverySection > .delivery-tabs {
+      flex: 0 0 auto;
+    }
+
+    #dashboardView #deliverySection > .delivery-search {
+      flex: 0 0 auto;
+      margin-bottom: 9px;
+    }
+
+    #dashboardView #deliverySection > #tripSelectionToolbar {
+      flex: 0 0 auto;
+      max-height: 34vh;
+      overflow-y: auto;
+    }
+
+    #dashboardView #deliverySection > .records-toolbar {
+      flex: 0 0 auto;
+      margin-bottom: 8px;
+    }
+
+    #dashboardView #deliverySection > .delivery-card-list {
+      display: block !important;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #dashboardView #deliverySection > .table-wrapper {
+      display: none !important;
+    }
+
+    #dashboardView .delivery-card {
+      margin-bottom: 10px;
+    }
+
+    #dashboardView .assignment-modal,
+    #dashboardView .trip-modal,
+    #dashboardView .delivery-result-modal {
+      max-height: 100dvh;
+    }
+  }
+
+</style>
+
+<div id="dashboardView" style="display:none;">
+  <div class="dashboard-container">
+
+    <!-- TOP HEADER -->
+    <header class="dashboard-header">
+  <div class="header-brand">
+    <img
+      src="https://drive.google.com/thumbnail?id=1RDWyPmqJ03W2pA5LQD5CPvcMB7m4ZNu5&sz=w500"
+      alt="MSCS PrimeGoods Logo"
+      class="company-logo"
+    >
+
+    <div class="company-heading">
+      <div class="company-name">MSCS PrimeGoods, Inc.</div>
+      <div class="company-tagline">Dependable Food Supply</div>
+
+      <p class="welcome-text">
+        Welcome, <strong id="userFullName"></strong>
+      </p>
+    </div>
+  </div>
+
+  <button type="button" class="logout-button" onclick="signOut()">
+    <span>↪</span> Logout
+  </button>
+</header>
+
+    <!-- ACCOUNT INFORMATION -->
+    <section class="account-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">YOUR ACCOUNT</p>
+          <h3>Account Information</h3>
+        </div>
+        <span class="account-role" id="userRole">-</span>
+      </div>
+
+      <div class="account-grid">
+        <div class="account-item">
+          <span>User ID</span>
+          <strong id="userId">-</strong>
+        </div>
+        <div class="account-item">
+          <span>Username</span>
+          <strong id="userUsername">-</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN NAVIGATION -->
+    <div class="audit-navigation">
+      <button
+        type="button"
+        class="delivery-tab active"
+        id="recordsMainTab"
+        onclick="switchMainView('records')"
+      >
+        Delivery Records
+      </button>
+
+      <button
+        type="button"
+        class="delivery-tab"
+        id="auditMainTab"
+        onclick="switchMainView('audit')"
+      >
+        Audit Logs
+        <span class="tab-count" id="auditCount">0</span>
+      </button>
+    </div>
+
+    <!-- DELIVERY SECTION -->
+    <main class="delivery-section" id="deliverySection">
+
+      <div class="delivery-heading">
+        <div>
+          <p class="eyebrow">OPERATIONS</p>
+          <h3>Delivery Records</h3>
+          <p class="delivery-count" id="totalDeliveryCount">
+            Total records: 0
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="refresh-button"
+          id="refreshButton"
+          onclick="loadDeliveryData()"
+        >
+          <span>↻</span> Refresh
+        </button>
+      </div>
+
+      <!-- DELIVERY TABS -->
+      <div class="delivery-tabs">
+
+        <button
+          type="button"
+          class="delivery-tab"
+          id="newTab"
+          onclick="switchDeliveryTab('new')"
+        >
+          <span class="tab-title">New</span>
+          <span class="tab-count" id="newCount">0</span>
+        </button>
+
+        <button
+          type="button"
+          class="delivery-tab"
+          id="ongoingTab"
+          onclick="switchDeliveryTab('ongoing')"
+        >
+          <span class="tab-title">Ongoing</span>
+          <span class="tab-count" id="ongoingCount">0</span>
+        </button>
+
+        <button
+          type="button"
+          class="delivery-tab active"
+          id="finishedTab"
+          onclick="switchDeliveryTab('finished')"
+        >
+          <span class="tab-title">Finished</span>
+          <span class="tab-count" id="finishedCount">0</span>
+        </button>
+
+        <button
+          type="button"
+          class="delivery-tab"
+          id="concernTab"
+          onclick="switchDeliveryTab('concern')"
+        >
+          <span class="tab-title">With Concerns</span>
+          <span class="tab-count" id="concernCount">0</span>
+        </button>
+
+      </div>
+
+      <!-- SEARCH -->
+      <div class="delivery-search">
+        <span class="search-icon">⌕</span>
+        <input
+          type="search"
+          id="deliverySearch"
+          placeholder="Search invoice, customer, sales order, trip ID..."
+          autocomplete="off"
+          oninput="renderDeliveryTable()"
+        >
+        <button
+          type="button"
+          class="clear-search"
+          id="clearSearchButton"
+          onclick="clearDeliverySearch()"
+          aria-label="Clear search"
+          style="display:none;"
+        >×</button>
+      </div>
+
+      <!-- SELECTION TOOLBAR -->
+      <div class="trip-selection-toolbar" id="tripSelectionToolbar">
+        <div>
+          <strong id="selectedInvoiceCount">0 invoices selected</strong>
+          <p class="assignment-help-text">
+            Select invoices to create one delivery trip.
+          </p>
+        </div>
+
+        <div class="trip-selection-actions">
+          <button
+            type="button"
+            class="secondary-action-button"
+            onclick="clearInvoiceSelection()"
+          >
+            Clear Selection
+          </button>
+
+          <button
+            type="button"
+            class="primary-action-button"
+            id="createTripButton"
+            onclick="openTripModal()"
+          >
+            NEW TRIP
+          </button>
+
+          <button
+            type="button"
+            class="primary-action-button"
+            id="addScheduleButton"
+            onclick="openTripModal()"
+          >
+            ADD SCHEDULE
+          </button>
+        </div>
+      </div>
+
+      <div class="records-toolbar">
+        <div>
+          <h4 id="currentTabTitle">Finished Deliveries</h4>
+          <p id="visibleRecordCount">Showing 0 records</p>
+        </div>
+      </div>
+
+      <!-- MOBILE DELIVERY CARDS -->
+      <div id="deliveryCardList" class="delivery-card-list">
+        <div class="loading-state">Loading delivery records...</div>
+      </div>
+
+      <!-- DESKTOP DELIVERY TABLE -->
+      <div class="table-wrapper">
+        <table class="delivery-table">
+          <thead>
+            <tr>
+              <th id="selectionHeader" style="display:none;">SELECT</th>
+              <th>INVOICE NUMBER</th>
+              <th>SALES ORDER</th>
+              <th>CUSTOMER</th>
+              <th>SALES REPRESENTATIVE</th>
+              <th>DELIVERY DATE</th>
+              <th>AREA</th>
+              <th>DRIVER</th>
+              <th>HELPER(S)</th>
+              <th>TRUCK</th>
+              <th>STATUS</th>
+              <th id="assignmentActionHeader" style="display:none;">ACTION</th>
+            </tr>
+          </thead>
+
+          <tbody id="deliveryTableBody">
+            <tr>
+              <td colspan="12" class="loading-message">
+                Loading delivery records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+
+    <!-- AUDIT LOGS SECTION -->
+    <main class="delivery-section" id="auditLogsSection" style="display:none;">
+
+      <div class="delivery-heading">
+        <div>
+          <p class="eyebrow">SYSTEM HISTORY</p>
+          <h3>Audit Logs</h3>
+          <p class="delivery-count" id="auditTotalCount">
+            Total audit entries: 0
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="refresh-button"
+          id="refreshAuditButton"
+          onclick="loadAuditLogs()"
+        >
+          ↻ Refresh Logs
+        </button>
+      </div>
+
+      <div class="audit-filter-grid">
+
+        <div class="delivery-search audit-search">
+          <span class="search-icon">⌕</span>
+          <input
+            type="search"
+            id="auditSearch"
+            placeholder="Search invoice, user, field, reason, or value..."
+            oninput="renderAuditLogs()"
+          >
+        </div>
+
+        <select id="auditActionFilter" onchange="renderAuditLogs()">
+          <option value="">All Actions</option>
+          <option value="CREATE">Create</option>
+          <option value="UPDATE">Update</option>
+          <option value="STATUS UPDATE">Status Update</option>
+          <option value="PHOTO UPLOAD">Photo Upload</option>
+          <option value="PHOTO DELETE">Photo Delete</option>
+          <option value="DELETE">Delete</option>
+        </select>
+
+        <select id="auditUserFilter" onchange="renderAuditLogs()">
+          <option value="">All Users</option>
+        </select>
+
+        <input
+          type="date"
+          id="auditDateFilter"
+          onchange="renderAuditLogs()"
+          aria-label="Filter by date"
+        >
+
+        <button
+          type="button"
+          class="secondary-action-button"
+          onclick="clearAuditFilters()"
+        >
+          Clear Filters
+        </button>
+
+      </div>
+
+      <div class="table-wrapper audit-table-wrapper">
+        <table class="delivery-table audit-table">
+          <thead>
+            <tr>
+              <th>TIMESTAMP</th>
+              <th>INVOICE</th>
+              <th>ACTION</th>
+              <th>FIELD</th>
+              <th>OLD VALUE</th>
+              <th>NEW VALUE</th>
+              <th>REASON / JUSTIFICATION</th>
+              <th>USER</th>
+              <th>ROLE</th>
+              <th>TRANSACTION ID</th>
+            </tr>
+          </thead>
+
+          <tbody id="auditTableBody">
+            <tr>
+              <td colspan="10" class="loading-message">
+                Select Audit Logs to retrieve history.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="auditEmptyState" class="audit-empty" style="display:none;">
+        No audit records found.
+      </div>
+
+      <p id="auditMessage" class="trip-message"></p>
+
+    </main>
+
+    <footer class="dashboard-footer">
+      Delivery Monitoring System
+    </footer>
+  </div>
+
+  <!-- CREATE NEW TRIP / ADD SCHEDULE MODAL -->
+  <div class="trip-modal" id="tripModal">
+    <div class="trip-modal-content">
+
+      <div class="trip-modal-header">
+        <div>
+          <p class="eyebrow">TRIP MANAGEMENT</p>
+          <h3 id="tripModalTitle">Create New Trip</h3>
+          <p class="assignment-help-text" id="tripModalDescription">
+            Assign the selected invoices to one delivery trip.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="close-modal-button"
+          onclick="closeTripModal()"
+          aria-label="Close"
+        >&times;</button>
+      </div>
+
+      <div class="trip-form-grid">
+
+        <div class="trip-form-group">
+          <label for="tripDeliveryDate">
+            Delivery Date <span class="required-mark">*</span>
+          </label>
+          <input type="date" id="tripDeliveryDate" required>
+        </div>
+
+        <div class="trip-form-group">
+          <label for="tripTruck">
+            Truck <span class="required-mark">*</span>
+          </label>
+          <input type="text" id="tripTruck" placeholder="Enter truck" required>
+        </div>
+
+        <div class="trip-form-group">
+          <label for="tripDriver">
+            Driver <span class="required-mark">*</span>
+          </label>
+          <input type="text" id="tripDriver" placeholder="Enter driver name" required>
+        </div>
+
+      </div>
+
+      <div class="trip-form-group">
+        <label>
+          Helper(s) <span class="required-mark">*</span>
+        </label>
+
+        <div id="tripHelpers" class="helper-checkbox-list">
+          <p class="assignment-help-text">Loading helpers...</p>
+        </div>
+
+        <p class="assignment-help-text">
+          Select at least one helper. All selected invoices will share these helpers.
+        </p>
+      </div>
+
+      <div class="trip-form-group">
+        <label>
+          Individual Invoice Areas
+          <span class="required-mark">*</span>
+        </label>
+
+        <p class="assignment-help-text">
+          Each invoice can have a different delivery area, even when they belong to the same trip.
+        </p>
+
+        <div class="trip-invoice-area-list" id="tripInvoiceAreaList"></div>
+      </div>
+
+      <div class="trip-form-group">
+        <label for="tripReason">
+          Reason / Justification <span class="required-mark">*</span>
+        </label>
+
+        <textarea
+          id="tripReason"
+          maxlength="2000"
+          placeholder="Explain why these invoices are being scheduled..."
+          required
+        ></textarea>
+
+        <p class="assignment-help-text">
+          Required for audit logging. Maximum 2,000 characters.
+        </p>
+      </div>
+
+      <div id="tripMessage" class="trip-message"></div>
+
+      <div class="trip-modal-actions">
+        <button type="button" class="cancel-assignment-button" onclick="closeTripModal()">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="save-assignment-button"
+          id="saveTripButton"
+          onclick="submitDeliveryTrip()"
+          disabled
+        >
+          Create Trip
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT EXISTING TRIP MODAL -->
+  <div class="trip-modal" id="editTripModal">
+    <div class="trip-modal-content">
+
+      <div class="trip-modal-header">
+        <div>
+          <p class="eyebrow">TRIP MANAGEMENT</p>
+          <h3>Edit Delivery Trip</h3>
+          <p class="assignment-help-text">
+            Trip ID: <strong id="editTripIdDisplay">-</strong>
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="close-modal-button"
+          onclick="closeEditTripModal()"
+          aria-label="Close"
+        >&times;</button>
+      </div>
+
+      <div class="trip-form-grid">
+
+        <div class="trip-form-group">
+          <label for="editTripDeliveryDate">Delivery Date</label>
+          <input type="date" id="editTripDeliveryDate">
+        </div>
+
+        <div class="trip-form-group">
+          <label for="editTripTruck">Truck</label>
+          <input type="text" id="editTripTruck">
+        </div>
+
+        <div class="trip-form-group">
+          <label for="editTripDriver">Driver</label>
+          <input type="text" id="editTripDriver">
+        </div>
+
+      </div>
+
+      <div class="trip-form-group">
+        <label>Helper(s)</label>
+        <div id="editTripHelpers" class="helper-checkbox-list">
+          <p class="assignment-help-text">Loading helpers...</p>
+        </div>
+      </div>
+
+      <div class="trip-form-group">
+        <label>Individual Invoice Areas</label>
+
+        <p class="assignment-help-text">
+          Change the area of individual invoices without changing the other invoices' areas.
+        </p>
+
+        <div class="trip-invoice-area-list" id="editTripInvoiceAreaList"></div>
+      </div>
+
+      <div class="trip-form-group">
+        <label for="editTripReason">
+          Reason for Change <span class="required-mark">*</span>
+        </label>
+
+        <textarea
+          id="editTripReason"
+          maxlength="2000"
+          placeholder="Explain why this trip is being changed..."
+          required
+        ></textarea>
+      </div>
+
+      <div id="editTripMessage" class="trip-message"></div>
+
+      <div class="trip-modal-actions">
+        <button type="button" class="cancel-assignment-button" onclick="closeEditTripModal()">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="save-assignment-button"
+          id="saveEditTripButton"
+          onclick="submitEditTrip()"
+          disabled
+        >
+          Save Trip Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGULAR ASSIGNMENT EDITOR MODAL -->
+  <div class="assignment-modal" id="assignmentModal">
+    <div class="assignment-modal-content">
+
+      <div class="assignment-modal-header">
+        <div>
+          <p class="eyebrow">DELIVERY SETTINGS</p>
+          <h3>Edit Assignment</h3>
+        </div>
+
+        <button
+          type="button"
+          class="close-modal-button"
+          onclick="closeAssignmentModal()"
+          aria-label="Close"
+        >&times;</button>
+      </div>
+
+      <div class="assignment-invoice-info">
+        <span>Invoice Number</span>
+        <strong id="assignmentInvoiceNumber">-</strong>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="assignmentArea">Delivery Area</label>
+        <input type="text" id="assignmentArea" placeholder="Enter delivery area">
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="assignmentTruck">Truck</label>
+        <input type="text" id="assignmentTruck" placeholder="Enter truck">
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="assignmentDriver">Driver</label>
+        <input type="text" id="assignmentDriver" placeholder="Enter driver name">
+      </div>
+
+      <div class="assignment-form-group">
+        <label>Helper(s)</label>
+        <div id="assignmentHelpers" class="helper-checkbox-list">
+          <p class="assignment-help-text">Loading helpers...</p>
+        </div>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="assignmentReason">
+          Reason for Change <span class="required-mark">*</span>
+        </label>
+
+        <textarea
+          id="assignmentReason"
+          maxlength="2000"
+          placeholder="Explain why this assignment is being changed..."
+          required
+        ></textarea>
+      </div>
+
+      <div id="assignmentMessage" class="assignment-message"></div>
+
+      <div class="assignment-modal-actions">
+        <button type="button" class="cancel-assignment-button" onclick="closeAssignmentModal()">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="save-assignment-button"
+          id="saveAssignmentButton"
+          onclick="submitAssignmentChanges()"
+          disabled
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- DELIVERY STATUS EDIT MODAL -->
+  <div class="assignment-modal" id="readyStatusModal">
+    <div class="assignment-modal-content ready-status-modal-content">
+      <div class="assignment-modal-header">
+        <div>
+          <p class="eyebrow">DELIVERY STATUS</p>
+          <h3>Edit Delivery Status</h3>
+          <p class="assignment-help-text">
+            Correct the invoice status if it was selected incorrectly.
+          </p>
+        </div>
+        <button type="button" class="close-modal-button"
+          onclick="closeReadyStatusModal()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="assignment-form-group">
+        <label>Invoice Number</label>
+        <strong id="readyStatusInvoice">-</strong>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="editDeliveryStatus">Correct Status <span class="required-mark">*</span></label>
+        <select id="editDeliveryStatus" required onchange="toggleCorrectionRemarks()">
+          <option value="">No correction available</option>
+        </select>
+        <small class="assignment-help-text" id="statusCorrectionHelp">
+          Only permitted corrections for the current status will be shown.
+        </small>
+        <small class="helper-filipino">Kumpirmahin ang bagong status bago i-save.</small>
+      </div>
+
+      <div class="assignment-form-group" id="correctionRemarksGroup" style="display:none;">
+        <label for="readyStatusRemarks">Delivery Remarks <span class="required-mark">*</span></label>
+        <small class="helper-filipino">Mga detalye tungkol sa naging delivery</small>
+        <textarea id="readyStatusRemarks" maxlength="4000"
+          placeholder="Enter the corrected delivery remarks..."></textarea>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="readyStatusReason">Reason / Justification <span class="required-mark">*</span></label>
+        <small class="helper-filipino">Bakit mo kailangang baguhin ang status?</small>
+        <textarea id="readyStatusReason" maxlength="2000"
+          placeholder="Explain why this status is being corrected..." required></textarea>
+      </div>
+
+      <div id="readyStatusMessage" class="ready-status-message"></div>
+
+      <div class="assignment-modal-actions">
+        <button type="button" class="cancel-assignment-button"
+          onclick="closeReadyStatusModal()">Cancel</button>
+        <button type="button" class="ready-status-button"
+          id="confirmReadyStatusButton" onclick="submitReadyStatus()">Save Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRST-TIME DELIVERY RESULT MODAL -->
+  <div class="assignment-modal" id="deliveryResultModal">
+    <div class="assignment-modal-content ready-status-modal-content">
+      <div class="assignment-modal-header">
+        <div>
+          <p class="eyebrow">DELIVERY UPDATE</p>
+          <h3>Update Delivery Status</h3>
+          <p class="assignment-help-text">Select the delivery result, add remarks, and attach photos if needed.</p>
+        </div>
+        <button type="button" class="close-modal-button"
+          onclick="closeDeliveryResultModal()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="assignment-form-group">
+        <label>Invoice Number</label>
+        <strong id="deliveryResultInvoice">-</strong>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="deliveryResultStatus">Delivery Status <span class="required-mark">*</span></label>
+        <select id="deliveryResultStatus" required>
+          <option value="">Select delivery result</option>
+          <option value="DELIVERED SUCCESSFULLY">DELIVERED SUCCESSFULLY</option>
+          <option value="DELIVERED - WITH CANCELLED ITEM(S)">DELIVERED - WITH CANCELLED ITEM(S)</option>
+          <option value="DELIVERED - WITH INVOICE CONCERN">DELIVERED - WITH INVOICE CONCERN</option>
+          <option value="DELIVERED - WITH ITEM(S) TO FOLLOW">DELIVERED - WITH ITEM(S) TO FOLLOW</option>
+          <option value="DELIVERED - WITH COA TO FOLLOW">DELIVERED - WITH COA TO FOLLOW</option>
+          <option value="DELIVERY ATTEMPT UNSUCCESSFUL (1)">DELIVERY ATTEMPT UNSUCCESSFUL (1)</option>
+          <option value="DELIVERY ATTEMPT UNSUCCESSFUL (2)">DELIVERY ATTEMPT UNSUCCESSFUL (2)</option>
+          <option value="BACKLOAD">BACKLOAD</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
+      </div>
+
+      <div class="assignment-form-group" id="returnToAreaQuestionGroup" style="display:none;">
+        <label>Will you attempt delivery to this area again later today? <span class="required-mark">*</span></label>
+        <small class="helper-filipino">Babalik pa ba kayo sa lugar na ito mamaya upang subukang ihatid muli ang mga item?</small>
+        <div class="return-area-choice">
+          <label><input type="radio" name="returnToAreaToday" value="YES"> YES <span class="helper-filipino">(Oo, babalik pa kami.)</span></label>
+          <label><input type="radio" name="returnToAreaToday" value="NO"> NO <span class="helper-filipino">(Hindi na kami babalik ngayong araw.)</span></label>
+        </div>
+      </div>
+      <div class="assignment-form-group" id="secondAttemptFinalNotice" style="display:none;">
+        <small class="helper-filipino">This is the second unsuccessful delivery attempt. No third delivery attempt will be allowed.</small>
+        <small class="helper-filipino">Ikalawang beses na hindi natuloy ang delivery. Hindi na ito maaaring i-schedule muli.</small>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="deliveryResultRemarks">Delivery Remarks <span class="required-mark">*</span></label>
+        <small class="helper-filipino">Mga detalye tungkol sa naging delivery</small>
+        <small class="helper-filipino" id="unsuccessfulDeliveryPrompt" style="display:none;">Why was the delivery unsuccessful? / Bakit hindi natuloy ang delivery?</small>
+        <textarea id="deliveryResultRemarks" maxlength="4000"
+          placeholder="Enter delivery remarks (required)..."></textarea>
+      </div>
+
+      <div class="assignment-form-group">
+        <label for="deliveryResultPhotos">Add Photos (optional)</label>
+        <small class="helper-filipino">Mag-upload ng mga litrato</small>
+        <input id="deliveryResultPhotos" class="workflow-result-photos" type="file"
+          accept="image/*" multiple aria-label="Choose one or more delivery photos">
+        <small class="workflow-photo-help">Select multiple photos at once, or choose photos again to add more. Up to 5 images per update, maximum 2 MB each; combined limit 8 MB.</small>
+        <div id="deliveryResultPhotoNames" class="workflow-photo-names">No photos selected.</div>
+      </div>
+
+      <div id="deliveryResultMessage" class="ready-status-message"></div>
+
+      <div class="assignment-modal-actions">
+        <button type="button" class="cancel-assignment-button"
+          onclick="closeDeliveryResultModal()">Cancel</button>
+        <button type="button" class="ready-status-button"
+          id="saveDeliveryResultButton" onclick="submitDeliveryResult()">Save Update</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /****************************************************
+   * GLOBAL STATE
+   ****************************************************/
+
+  let currentSessionToken = null;
+  let currentDeliveryTab = "finished";
+  let currentUserRole = "";
+
+  let currentAssignmentRecord = null;
+  let currentReadyRecord = null;
+  let deliveryAssignmentHelpers = [];
+
+  let selectedInvoiceIds = new Set();
+  let currentTripAction = "NEW_TRIP";
+  let currentEditTripId = "";
+  let currentEditTripRecords = [];
+
+  let deliveryDashboardData = {
+    newDeliveries: [],
+    ongoingDeliveries: [],
+    finishedDeliveries: [],
+    concernDeliveries: []
+  };
+
+  // Audit logs
+  let auditLogsData = [];
+  let auditLogsLoaded = false;
+  let auditLogsLoading = false;
+
+
+  /****************************************************
+   * PERMISSIONS
+   ****************************************************/
+
+  function canEditAssignments() {
+    return ["ADMIN", "MANAGER", "ENCODER"].includes(
+      String(currentUserRole || "").trim().toUpperCase()
+    );
+  }
+
+  function canCreateTrips() {
+    return canEditAssignments();
+  }
+
+  function isHelperAccount() {
+    return String(currentUserRole || "").trim().toUpperCase() === "HELPER";
+  }
+
+  // Encoder/Admin/Manager can open Edit Status for any active invoice.
+  // Helpers use Edit Status only to correct the trip movement state.
+  // Delivery results are saved separately through UPDATE STATUS after ARRIVED.
+  function canShowEditStatus(record) {
+    if (!(canEditAssignments() || isHelperAccount())) return false;
+
+    const status = String(record && record.status || "").trim().toUpperCase();
+    if (isHelperAccount()) {
+      return status === "IN TRANSIT" || status === "ARRIVED";
+    }
+
+    return true;
+  }
+
+
+  /****************************************************
+   * DASHBOARD INITIALIZATION
+   ****************************************************/
+
+  function showDashboard(token, user) {
+    currentSessionToken = token;
+    currentUserRole = user.role || "";
+    document.body.classList.toggle("helper-view", String(currentUserRole).trim().toUpperCase() === "HELPER");
+
+    document.getElementById("loginView").style.display = "none";
+    document.getElementById("dashboardView").style.display = "block";
+
+    document.getElementById("userFullName").textContent =
+      user.fullName || "";
+
+    document.getElementById("userId").textContent =
+      user.userId || "";
+
+    document.getElementById("userUsername").textContent =
+      user.username || "";
+
+    document.getElementById("userRole").textContent =
+      user.role || "";
+
+    document.getElementById("assignmentActionHeader").style.display =
+      (canEditAssignments() || isHelperAccount()) ? "" : "none";
+
+    document.getElementById("selectionHeader").style.display =
+      canCreateTrips() ? "" : "none";
+
+    if (isHelperAccount()) {
+      document.getElementById("selectionHeader").style.display = "none";
+    }
+
+    switchMainView("records");
+    loadDeliveryData();
+  }
+
+
+  /****************************************************
+   * MAIN NAVIGATION
+   ****************************************************/
+
+  function switchMainView(view) {
+    const recordsSection = document.getElementById("deliverySection");
+    const auditSection = document.getElementById("auditLogsSection");
+
+    const recordsButton = document.getElementById("recordsMainTab");
+    const auditButton = document.getElementById("auditMainTab");
+
+    const showAudit = view === "audit";
+
+    recordsSection.style.display = showAudit ? "none" : "flex";
+    auditSection.style.display = showAudit ? "flex" : "none";
+
+    recordsButton.classList.toggle("active", !showAudit);
+    auditButton.classList.toggle("active", showAudit);
+
+    if (showAudit) {
+      loadAuditLogs();
+    }
+  }
+
+
+  /****************************************************
+   * LOAD DASHBOARD DATA
+   ****************************************************/
+
+  function loadDeliveryData() {
+    if (!currentSessionToken) return;
+
+    const button = document.getElementById("refreshButton");
+    const tableBody = document.getElementById("deliveryTableBody");
+    const cardList = document.getElementById("deliveryCardList");
+
+    button.disabled = true;
+    button.innerHTML = "<span>↻</span> Loading...";
+
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="12" class="loading-message">
+          Retrieving delivery records from Odoo...
+        </td>
+      </tr>
+    `;
+
+    cardList.innerHTML =
+      '<div class="loading-state">Retrieving delivery records from Odoo...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        button.disabled = false;
+        button.innerHTML = "<span>↻</span> Refresh";
+
+        if (!result || !result.success) {
+          showDeliveryError("Unable to retrieve delivery records.");
+          return;
+        }
+
+        deliveryDashboardData = {
+          newDeliveries: result.newDeliveries || [],
+          ongoingDeliveries: result.ongoingDeliveries || [],
+          finishedDeliveries: result.finishedDeliveries || [],
+          concernDeliveries: result.concernDeliveries || []
+        };
+
+        document.getElementById("newCount").textContent =
+          result.newCount ?? deliveryDashboardData.newDeliveries.length;
+
+        document.getElementById("ongoingCount").textContent =
+          result.ongoingCount ?? deliveryDashboardData.ongoingDeliveries.length;
+
+        document.getElementById("finishedCount").textContent =
+          result.finishedCount ?? deliveryDashboardData.finishedDeliveries.length;
+
+        document.getElementById("concernCount").textContent =
+          result.concernCount ?? deliveryDashboardData.concernDeliveries.length;
+
+        document.getElementById("totalDeliveryCount").textContent =
+          "Total records: " + (result.totalRecords ?? 0);
+
+        selectedInvoiceIds.clear();
+        updateSelectionToolbar();
+        renderDeliveryTable();
+      })
+      .withFailureHandler(function(error) {
+        button.disabled = false;
+        button.innerHTML = "<span>↻</span> Refresh";
+
+        showDeliveryError(
+          error.message || "Unable to connect to Odoo."
+        );
+      })
+      .getDeliveryDashboardData(currentSessionToken);
+  }
+
+
+  /****************************************************
+   * DELIVERY TAB NAVIGATION
+   ****************************************************/
+
+  function switchDeliveryTab(tab) {
+    currentDeliveryTab = tab;
+
+    const tabs = [
+      ["new", "newTab"],
+      ["ongoing", "ongoingTab"],
+      ["finished", "finishedTab"],
+      ["concern", "concernTab"]
+    ];
+
+    tabs.forEach(function(item) {
+      document.getElementById(item[1]).classList.toggle(
+        "active",
+        item[0] === tab
+      );
+    });
+
+    const titles = {
+      new: "New Deliveries",
+      ongoing: "Ongoing Deliveries",
+      finished: "Finished Deliveries",
+      concern: "Deliveries With Concerns"
+    };
+
+    document.getElementById("currentTabTitle").textContent =
+      titles[tab] || "Delivery Records";
+
+    selectedInvoiceIds.clear();
+    updateSelectionToolbar();
+
+    renderDeliveryTable();
+  }
+
+
+  /****************************************************
+   * RECORD RETRIEVAL AND SEARCH
+   ****************************************************/
+
+  function getTabRecords() {
+    const data = {
+      new: deliveryDashboardData.newDeliveries,
+      ongoing: deliveryDashboardData.ongoingDeliveries,
+      finished: deliveryDashboardData.finishedDeliveries,
+      concern: deliveryDashboardData.concernDeliveries
+    };
+
+    return data[currentDeliveryTab] || [];
+  }
+
+  function clearDeliverySearch() {
+    document.getElementById("deliverySearch").value = "";
+    renderDeliveryTable();
+  }
+
+  function recordMatchesSearch(record, query) {
+    const searchable = [
+      record.invoiceNumber,
+      record.salesOrderNumber,
+      record.customerName,
+      record.salesRepresentative,
+      record.deliveryDate,
+      record.area,
+      record.driver,
+      (record.helperNames || []).join(" "),
+      record.truck,
+      record.tripId,
+      record.status
+    ].join(" ").toLowerCase();
+
+    return searchable.includes(query);
+  }
+
+  function getVisibleRecords() {
+    const records = getTabRecords();
+
+    const query = document.getElementById("deliverySearch")
+      .value.trim().toLowerCase();
+
+    if (!query) return records;
+
+    return records.filter(function(record) {
+      return recordMatchesSearch(record, query);
+    });
+  }
+
+
+  /****************************************************
+   * MAIN RENDER FUNCTION
+   ****************************************************/
+
+  function renderDeliveryTable() {
+    const tableBody = document.getElementById("deliveryTableBody");
+    const cardList = document.getElementById("deliveryCardList");
+
+    const deliverySection = document.getElementById("deliverySection");
+
+    deliverySection.classList.toggle(
+      "trip-group-view",
+      currentDeliveryTab === "ongoing" &&
+      canEditAssignments() &&
+      window.matchMedia("(max-width: 650px)").matches
+    );
+
+    const tableWrapper = deliverySection.querySelector(".table-wrapper");
+
+    cardList.style.display = "";
+    if (tableWrapper) {
+      tableWrapper.style.display = "";
+    }
+
+    const records = getVisibleRecords();
+
+    const query = document.getElementById("deliverySearch")
+      .value.trim();
+
+    document.getElementById("clearSearchButton").style.display =
+      query ? "block" : "none";
+
+    document.getElementById("visibleRecordCount").textContent =
+      "Showing " + records.length + " of " +
+      getTabRecords().length + " records";
+
+    tableBody.replaceChildren();
+    cardList.replaceChildren();
+
+    const selectionToolbar = document.getElementById(
+      "tripSelectionToolbar"
+    );
+
+    const selectionAvailable =
+      canCreateTrips() &&
+      (currentDeliveryTab === "new" ||
+       currentDeliveryTab === "concern");
+
+    selectionToolbar.classList.toggle("show", selectionAvailable);
+
+    document.getElementById("createTripButton").style.display =
+      currentDeliveryTab === "new" ? "" : "none";
+
+    document.getElementById("addScheduleButton").style.display =
+      currentDeliveryTab === "concern" ? "" : "none";
+
+    if (!records.length) {
+      const message = query
+        ? "No records match your search."
+        : "No delivery records found.";
+
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+
+      cell.colSpan = canEditAssignments() ? 12 : 11;
+      cell.className = "empty-message";
+      cell.textContent = message;
+
+      row.appendChild(cell);
+      tableBody.appendChild(row);
+
+      const empty = document.createElement("div");
+      empty.className = "empty-card-state";
+      empty.textContent = message;
+
+      cardList.appendChild(empty);
+      return;
+    }
+
+    if (
+      currentDeliveryTab === "ongoing" &&
+      canEditAssignments() &&
+      window.matchMedia("(min-width: 651px)").matches
+    ) {
+      renderOngoingTripGroups(records, tableBody, cardList);
+      return;
+    }
+
+    records.forEach(function(record) {
+      renderDesktopRow(tableBody, record);
+      renderMobileCard(cardList, record);
+    });
+  }
+
+
+  /****************************************************
+   * ONGOING TRIP GROUPING
+   ****************************************************/
+
+  function renderOngoingTripGroups(records, tableBody, cardList) {
+    const groups = {};
+    const noTripRecords = [];
+
+    records.forEach(function(record) {
+      const tripId = String(record.tripId || "").trim();
+      if (!tripId) {
+        noTripRecords.push(record);
+        return;
+      }
+      if (!groups[tripId]) groups[tripId] = [];
+      groups[tripId].push(record);
+    });
+
+    const tripIds = Object.keys(groups).sort();
+
+    tripIds.forEach(function(tripId) {
+      const tripRecords = groups[tripId];
+      const groupRow = document.createElement("tr");
+      groupRow.className = "trip-table-group-row";
+      const groupCell = document.createElement("td");
+      groupCell.colSpan = 12;
+      groupCell.style.background = "#eef4fb";
+      groupCell.style.padding = "10px 14px";
+
+      const label = document.createElement("strong");
+      label.textContent = tripId + " — " + tripRecords.length +
+        (tripRecords.length === 1 ? " invoice" : " invoices");
+      groupCell.appendChild(label);
+
+      const allReady = tripRecords.length > 0 && tripRecords.every(function(r) {
+        return String(r.status || "").trim().toUpperCase() === "READY FOR DELIVERY";
+      });
+      if (canEditAssignments() && allReady) {
+        const departButton = document.createElement("button");
+        departButton.type = "button";
+        departButton.className = "trip-depart-button";
+        departButton.style.marginLeft = "14px";
+        departButton.textContent = "DEPART TRIP";
+        departButton.addEventListener("click", function() {
+          runWorkflowAction("DEPART", null, tripId);
+        });
+        groupCell.appendChild(departButton);
+      }
+
+      groupRow.appendChild(groupCell);
+      tableBody.appendChild(groupRow);
+      tripRecords.forEach(function(record) {
+        renderDesktopRow(tableBody, record);
+      });
+    });
+
+    if (noTripRecords.length) {
+      const groupRow = document.createElement("tr");
+      const groupCell = document.createElement("td");
+      groupCell.colSpan = 12;
+      groupCell.style.background = "#f8fafc";
+      groupCell.style.padding = "10px 14px";
+      groupCell.innerHTML = "<strong>Unassigned / No Trip ID</strong>";
+      groupRow.appendChild(groupCell);
+      tableBody.appendChild(groupRow);
+      noTripRecords.forEach(function(record) {
+        renderDesktopRow(tableBody, record);
+      });
+    }
+  }
+
+  function createTripGroup(tripId, records, index, noTripId) {
+    const group = document.createElement("section");
+    group.className = "trip-group";
+
+    const header = document.createElement("div");
+    header.className = "trip-group-header";
+
+    const titleBlock = document.createElement("div");
+
+    const title = document.createElement("div");
+    title.className = "trip-group-title";
+    title.textContent = tripId;
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "trip-group-subtitle";
+    subtitle.textContent =
+      records.length + (records.length === 1 ? " invoice" : " invoices");
+
+    titleBlock.append(title, subtitle);
+
+    const actions = document.createElement("div");
+    actions.className = "trip-group-actions";
+
+    const toggleButton = document.createElement("button");
+    toggleButton.type = "button";
+    toggleButton.className = "secondary-action-button";
+    toggleButton.textContent = "View Invoices";
+
+    const content = document.createElement("div");
+    content.className = "trip-group-content";
+    content.hidden = true;
+
+    toggleButton.addEventListener("click", function() {
+      content.hidden = !content.hidden;
+      toggleButton.textContent = content.hidden
+        ? "View Invoices"
+        : "Hide Invoices";
+    });
+
+    actions.appendChild(toggleButton);
+
+    if (canEditAssignments() && !noTripId) {
+      const allReady = records.length > 0 && records.every(function(r) {
+        return String(r.status || "").trim().toUpperCase() === "READY FOR DELIVERY";
+      });
+      if (allReady) {
+        const departButton = document.createElement("button");
+        departButton.type = "button";
+        departButton.className = "trip-depart-button";
+        departButton.textContent = "DEPART";
+        departButton.addEventListener("click", function() {
+          runWorkflowAction("DEPART", null, tripId);
+        });
+        actions.appendChild(departButton);
+      }
+    }
+
+    if (canEditAssignments() && !noTripId) {
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "edit-trip-button";
+      editButton.textContent = "Edit Trip";
+
+      editButton.addEventListener("click", function() {
+        openEditTripModal(tripId, records);
+      });
+
+      actions.appendChild(editButton);
+    }
+
+    header.append(titleBlock, actions);
+
+    const summary = document.createElement("div");
+    summary.className = "trip-summary";
+
+    const first = records[0];
+
+    appendSummaryItem(summary, "Delivery Date", first.deliveryDate);
+    appendSummaryItem(summary, "Truck", first.truck);
+    appendSummaryItem(summary, "Driver", first.driver);
+    appendSummaryItem(summary, "Helpers", (first.helperNames || []).join(", "));
+
+    const readyCount = records.filter(function(record) {
+      return String(record.status || "").toUpperCase() === "READY FOR DELIVERY";
+    }).length;
+
+    const progress = document.createElement("div");
+    progress.className = "trip-progress";
+    progress.textContent =
+      readyCount + " of " + records.length +
+      " invoice(s) ready for delivery";
+
+    content.append(summary, progress);
+
+    const table = document.createElement("table");
+    table.className = "trip-invoice-list";
+
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+
+    ["INVOICE", "SALES ORDER", "CUSTOMER", "AREA", "STATUS", "ACTION"].forEach(function(label) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    records.forEach(function(record) {
+      const row = document.createElement("tr");
+
+      [
+        record.invoiceNumber,
+        record.salesOrderNumber,
+        record.customerName,
+        record.area
+      ].forEach(function(value) {
+        const td = document.createElement("td");
+        td.textContent = value || "-";
+        row.appendChild(td);
+      });
+
+      const statusCell = document.createElement("td");
+      statusCell.appendChild(createStatusBadge(record.status));
+      row.appendChild(statusCell);
+
+      const actionCell = document.createElement("td");
+      appendWorkflowActions(actionCell, record);
+      if (canShowEditStatus(record)) {
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "status-edit-button";
+        statusButton.textContent = "Edit Status";
+        statusButton.addEventListener("click", function() {
+          openReadyStatusModal(record);
+        });
+        actionCell.appendChild(statusButton);
+      }
+      row.appendChild(actionCell);
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    content.appendChild(table);
+
+    group.append(header, content);
+    return group;
+  }
+
+
+  function appendSummaryItem(container, label, value) {
+    const item = document.createElement("span");
+    const strong = document.createElement("strong");
+
+    strong.textContent = label + ": ";
+
+    item.append(strong, document.createTextNode(value || ""));
+    container.appendChild(item);
+  }
+
+
+  /****************************************************
+   * INVOICE SELECTION
+   ****************************************************/
+
+  function updateSelectionToolbar() {
+    const count = selectedInvoiceIds.size;
+
+    document.getElementById("selectedInvoiceCount").textContent =
+      count + (count === 1 ? " invoice selected" : " invoices selected");
+
+    document.getElementById("createTripButton").disabled = count === 0;
+    document.getElementById("addScheduleButton").disabled = count === 0;
+  }
+
+  function toggleInvoiceSelection(recordId, checked) {
+    const id = Number(recordId);
+
+    if (checked) {
+      selectedInvoiceIds.add(id);
+    } else {
+      selectedInvoiceIds.delete(id);
+    }
+
+    updateSelectionToolbar();
+  }
+
+  function clearInvoiceSelection() {
+    selectedInvoiceIds.clear();
+    renderDeliveryTable();
+    updateSelectionToolbar();
+  }
+
+
+  /****************************************************
+   * DESKTOP INVOICE ROW
+   ****************************************************/
+
+  function renderDesktopRow(tableBody, record) {
+    const row = document.createElement("tr");
+
+    if (
+      canCreateTrips() &&
+      (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+    ) {
+      const selectionCell = document.createElement("td");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "invoice-select";
+      const finalAttempt = currentDeliveryTab === "concern" &&
+        String(record.status || "").trim().toUpperCase() === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
+      checkbox.disabled = finalAttempt;
+      checkbox.checked = !finalAttempt && selectedInvoiceIds.has(Number(record.id));
+      if (finalAttempt) {
+        selectedInvoiceIds.delete(Number(record.id));
+        checkbox.title = "Second unsuccessful attempt is final; it cannot be scheduled again.";
+      }
+
+      checkbox.addEventListener("change", function() {
+        toggleInvoiceSelection(record.id, checkbox.checked);
+      });
+
+      selectionCell.appendChild(checkbox);
+      row.appendChild(selectionCell);
+    }
+
+    const values = [
+      record.invoiceNumber,
+      record.salesOrderNumber,
+      record.customerName,
+      record.salesRepresentative,
+      record.deliveryDate,
+      record.area,
+      record.driver,
+      (record.helperNames || []).join(", ") || "-",
+      record.truck
+    ];
+
+    values.forEach(function(value) {
+      const cell = document.createElement("td");
+      cell.textContent = value || "-";
+      row.appendChild(cell);
+    });
+
+    const statusCell = document.createElement("td");
+    statusCell.appendChild(createStatusBadge(record.status));
+    row.appendChild(statusCell);
+
+    if (canEditAssignments() || isHelperAccount()) {
+      const actionCell = document.createElement("td");
+
+      if (canShowEditStatus(record)) {
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "status-edit-button";
+        statusButton.textContent = "Edit Status";
+        statusButton.addEventListener("click", function() {
+          openReadyStatusModal(record);
+        });
+        actionCell.appendChild(statusButton);
+      }
+      appendWorkflowActions(actionCell, record);
+
+      if (
+        canEditAssignments() &&
+        (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+      ) {
+        const assignmentButton = document.createElement("button");
+        assignmentButton.type = "button";
+        assignmentButton.className = "edit-assignment-button icon-only";
+        assignmentButton.style.marginLeft = "6px";
+        assignmentButton.innerHTML = "&#9998;";
+        assignmentButton.title = "Edit Assignment";
+        assignmentButton.setAttribute("aria-label", "Edit Assignment");
+        assignmentButton.addEventListener("click", function() {
+          openAssignmentEditor(record);
+        });
+        actionCell.appendChild(assignmentButton);
+      }
+
+      row.appendChild(actionCell);
+    }
+
+    tableBody.appendChild(row);
+  }
+
+
+  /****************************************************
+   * MOBILE INVOICE CARD
+   ****************************************************/
+
+  function renderMobileCard(container, record) {
+    const card = document.createElement("article");
+    card.className = "delivery-card";
+
+    const top = document.createElement("div");
+    top.className = "delivery-card-top";
+
+    const invoiceBlock = document.createElement("div");
+    invoiceBlock.className = "delivery-card-invoice";
+
+    const invoiceLabel = document.createElement("span");
+    invoiceLabel.className = "card-field-label";
+    invoiceLabel.textContent = "INVOICE NUMBER";
+
+    const invoice = document.createElement("strong");
+    invoice.textContent = record.invoiceNumber || "-";
+
+    invoiceBlock.append(invoiceLabel, invoice);
+    top.append(invoiceBlock, createStatusBadge(record.status));
+
+    card.appendChild(top);
+
+    if (
+      canCreateTrips() &&
+      (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+    ) {
+      const selectionLabel = document.createElement("label");
+      selectionLabel.className = "helper-checkbox-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      const finalAttempt = currentDeliveryTab === "concern" &&
+        String(record.status || "").trim().toUpperCase() === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
+      checkbox.disabled = finalAttempt;
+      checkbox.checked = !finalAttempt && selectedInvoiceIds.has(Number(record.id));
+      if (finalAttempt) {
+        selectedInvoiceIds.delete(Number(record.id));
+        checkbox.title = "Second unsuccessful attempt is final; it cannot be scheduled again.";
+      }
+
+      checkbox.addEventListener("change", function() {
+        toggleInvoiceSelection(record.id, checkbox.checked);
+      });
+
+      selectionLabel.append(
+        checkbox,
+        document.createTextNode(finalAttempt ? "Final attempt — cannot be rescheduled" : "Select invoice")
+      );
+      card.appendChild(selectionLabel);
+    }
+
+    const customer = document.createElement("h4");
+    customer.className = "delivery-card-customer";
+    customer.textContent = record.customerName || "Customer not specified";
+    card.appendChild(customer);
+
+    const order = document.createElement("p");
+    order.className = "delivery-card-order";
+    order.textContent = "Sales Order: " + (record.salesOrderNumber || "-");
+    card.appendChild(order);
+
+    const details = document.createElement("div");
+    details.className = "delivery-card-details";
+
+    const detailItems = [
+      ["Delivery Date", record.deliveryDate],
+      ["Area", record.area],
+      ["Truck", record.truck],
+      ["Driver", record.driver],
+      ["Helper(s)", (record.helperNames || []).join(", ") || "-"],
+      ["Sales Representative", record.salesRepresentative],
+      ["Trip ID", record.tripId]
+    ];
+
+    detailItems.forEach(function(item) {
+      const detail = document.createElement("div");
+      detail.className = "delivery-detail";
+
+      const label = document.createElement("span");
+      label.textContent = item[0];
+
+      const value = document.createElement("strong");
+      value.textContent = item[1] || "-";
+
+      detail.append(label, value);
+      details.appendChild(detail);
+    });
+
+    card.appendChild(details);
+
+    if (canEditAssignments() || isHelperAccount()) {
+      const actions = document.createElement("div");
+      actions.className = "delivery-card-actions";
+
+      if (canShowEditStatus(record)) {
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "status-edit-button";
+        statusButton.textContent = "Edit Status";
+        statusButton.addEventListener("click", function() {
+          openReadyStatusModal(record);
+        });
+        actions.appendChild(statusButton);
+      }
+      appendWorkflowActions(actions, record);
+
+      if (
+        canEditAssignments() &&
+        (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+      ) {
+        const assignmentButton = document.createElement("button");
+        assignmentButton.type = "button";
+        assignmentButton.className = "edit-assignment-button mobile-edit-button icon-only";
+        assignmentButton.innerHTML = "&#9998;";
+        assignmentButton.title = "Edit Assignment";
+        assignmentButton.setAttribute("aria-label", "Edit Assignment");
+        assignmentButton.addEventListener("click", function() {
+          openAssignmentEditor(record);
+        });
+        actions.appendChild(assignmentButton);
+      }
+
+      card.appendChild(actions);
+    }
+
+    container.appendChild(card);
+  }
+
+
+  /****************************************************
+   * NORMAL DELIVERY WORKFLOW ACTIONS
+   ****************************************************/
+  function appendWorkflowActions(container, record) {
+    if (!record || !record.id) return;
+
+    // Encoder accounts correct invoice statuses only through Edit Status.
+    // They must not receive READY / IN TRANSIT / ARRIVED / UPDATE STATUS actions.
+    if (String(currentUserRole || "").trim().toUpperCase() === "ENCODER") return;
+
+    const status = String(record.status || "").trim().toUpperCase();
+    let action = "";
+    let label = "";
+
+    if (isHelperAccount() && record.returnToAreaToday === true &&
+        status === "DELIVERY ATTEMPT UNSUCCESSFUL (1)") {
+      action = "RETURN_TO_AREA";
+      label = "RETURN TO AREA";
+    } else if (status === "SCHEDULED") {
+      action = "READY";
+      label = "READY FOR DELIVERY";
+    } else if (status === "DEPARTED") {
+      // Do not let the next invoice enter IN TRANSIT while another invoice
+      // in this trip is still being delivered (IN TRANSIT) or is ARRIVED
+      // but has not yet had its delivery result saved.
+      const anotherUnfinishedStop = record.tripHasActiveTransit === true ||
+        getVisibleDeliveryRecords().some(function(item) {
+          const itemStatus = String(item.status || "").trim().toUpperCase();
+          return Number(item.id) !== Number(record.id) &&
+            String(item.tripId || "").trim() === String(record.tripId || "").trim() &&
+            ["IN TRANSIT", "ARRIVED"].includes(itemStatus);
+        });
+
+      if (!anotherUnfinishedStop) {
+        action = "TRANSIT";
+        label = "IN TRANSIT";
+      }
+    } else if (status === "IN TRANSIT") {
+      action = "ARRIVED";
+      label = "ARRIVED";
+    }
+
+    if (action) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "workflow-action-button";
+      button.textContent = label;
+      button.addEventListener("click", function() {
+        runWorkflowAction(action, record.id, record.tripId);
+      });
+      container.appendChild(button);
+
+    } else if (status === "ARRIVED") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "workflow-action-button";
+      button.textContent = "UPDATE STATUS";
+      button.addEventListener("click", function() {
+        openDeliveryResultModal(record);
+      });
+      container.appendChild(button);
+    }
+  }
+
+
+  /**
+   * First-time workflow actions do not request a justification.
+   * Delivery result actions require delivery remarks instead.
+   */
+  let activeDeliveryResultRecord = null;
+  // Keep selected files between file-picker openings so users can add photos in batches.
+  let selectedDeliveryPhotoFiles = [];
+
+  function toggleReturnToAreaQuestion() {
+    const status = String(document.getElementById("deliveryResultStatus").value || "").trim().toUpperCase();
+    const group = document.getElementById("returnToAreaQuestionGroup");
+    if (!group) return;
+    const needsAnswer = status === "DELIVERY ATTEMPT UNSUCCESSFUL (1)";
+    const isSecondAttempt = status === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
+    group.style.display = needsAnswer ? "" : "none";
+    const finalNotice = document.getElementById("secondAttemptFinalNotice");
+    if (finalNotice) finalNotice.style.display = isSecondAttempt ? "" : "none";
+    const unsuccessfulPrompt = document.getElementById("unsuccessfulDeliveryPrompt");
+    if (unsuccessfulPrompt) unsuccessfulPrompt.style.display = needsAnswer ? "block" : "none";
+    if (!needsAnswer) {
+      document.querySelectorAll('input[name="returnToAreaToday"]').forEach(function(input) { input.checked = false; });
+    }
+  }
+
+  document.getElementById("deliveryResultStatus").addEventListener("change", toggleReturnToAreaQuestion);
+
+  function openDeliveryResultModal(record) {
+    activeDeliveryResultRecord = record;
+    document.getElementById("deliveryResultInvoice").textContent =
+      record.invoiceNumber || record.name || ("Record #" + record.id);
+    document.getElementById("deliveryResultStatus").value = "";
+    document.querySelectorAll('input[name="returnToAreaToday"]').forEach(function(input) { input.checked = false; });
+    toggleReturnToAreaQuestion();
+    document.getElementById("deliveryResultRemarks").value = "";
+    document.getElementById("deliveryResultPhotos").value = "";
+    selectedDeliveryPhotoFiles = [];
+    document.getElementById("deliveryResultPhotoNames").textContent = "No photos selected.";
+    document.getElementById("deliveryResultMessage").textContent = "";
+    const saveButton = document.getElementById("saveDeliveryResultButton");
+    saveButton.disabled = false;
+    saveButton.textContent = "Save Update";
+    document.getElementById("deliveryResultModal").classList.add("show");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeDeliveryResultModal() {
+    document.getElementById("deliveryResultModal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    activeDeliveryResultRecord = null;
+    selectedDeliveryPhotoFiles = [];
+  }
+
+  document.addEventListener("change", function(event) {
+    if (!event.target || event.target.id !== "deliveryResultPhotos") return;
+    const newlySelected = Array.from(event.target.files || []);
+    const names = document.getElementById("deliveryResultPhotoNames");
+    const combinedSelection = selectedDeliveryPhotoFiles.concat(newlySelected);
+    if (combinedSelection.length > 5) {
+      alert("You can attach up to 5 photos per delivery update.");
+      event.target.value = "";
+      return;
+    }
+    const tooLarge = combinedSelection.find(function(file) {
+      return file.size > 2 * 1024 * 1024;
+    });
+    if (tooLarge) {
+      alert("Each photo must be 2 MB or smaller: " + tooLarge.name);
+      event.target.value = "";
+      return;
+    }
+    const total = combinedSelection.reduce(function(sum, file) { return sum + file.size; }, 0);
+    if (total > 8 * 1024 * 1024) {
+      alert("Combined photo size cannot exceed 8 MB.");
+      event.target.value = "";
+      return;
+    }
+    selectedDeliveryPhotoFiles = combinedSelection;
+    // Clear the input so the same file picker can be opened again to add another batch.
+    event.target.value = "";
+    names.textContent = selectedDeliveryPhotoFiles.length
+      ? selectedDeliveryPhotoFiles.length + " photo(s) selected: " +
+        selectedDeliveryPhotoFiles.map(function(file) { return file.name; }).join(", ")
+      : "No photos selected.";
+  });
+
+  async function submitDeliveryResult() {
+    if (!activeDeliveryResultRecord) return;
+    const status = document.getElementById("deliveryResultStatus").value;
+    const remarks = String(document.getElementById("deliveryResultRemarks").value || "").trim();
+    const photoInput = document.getElementById("deliveryResultPhotos");
+    const saveButton = document.getElementById("saveDeliveryResultButton");
+    const message = document.getElementById("deliveryResultMessage");
+
+    message.textContent = "";
+    if (!status) {
+      message.textContent = "Please select a delivery status.";
+      document.getElementById("deliveryResultStatus").focus();
+      return;
+    }
+    if (!remarks) {
+      message.textContent = "Please enter delivery remarks.";
+      document.getElementById("deliveryResultRemarks").focus();
+      return;
+    }
+    const isFirstUnsuccessful = status === "DELIVERY ATTEMPT UNSUCCESSFUL (1)";
+    const returnChoice = document.querySelector('input[name="returnToAreaToday"]:checked');
+    if (isFirstUnsuccessful && !returnChoice) {
+      message.textContent = "Please answer the return-to-area question.";
+      document.getElementById("returnToAreaQuestionGroup").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    try {
+      saveButton.disabled = true;
+      saveButton.textContent = "Preparing...";
+      const photoPayload = await readDeliveryPhotoFiles_(selectedDeliveryPhotoFiles);
+      runWorkflowAction(
+        "RESULT:" + status,
+        activeDeliveryResultRecord.id,
+        activeDeliveryResultRecord.tripId,
+        remarks,
+        photoPayload,
+        saveButton,
+        isFirstUnsuccessful ? returnChoice.value === "YES" : false,
+        isFirstUnsuccessful && !!returnChoice
+      );
+    } catch (error) {
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Update";
+      message.textContent = error && error.message
+        ? error.message
+        : "Unable to read the selected photos.";
+    }
+  }
+
+  function readDeliveryPhotoFiles_(fileList) {
+    const files = Array.from(fileList || []);
+    if (files.length > 5) {
+      return Promise.reject(new Error("You can attach up to 5 photos per delivery update."));
+    }
+    const totalBytes = files.reduce(function(total, file) { return total + file.size; }, 0);
+    if (totalBytes > 8 * 1024 * 1024) {
+      return Promise.reject(new Error("Combined photo size cannot exceed 8 MB."));
+    }
+    for (const file of files) {
+      if (!/^image\//i.test(file.type || "")) {
+        return Promise.reject(new Error("Only image files can be attached."));
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        return Promise.reject(new Error(file.name + " exceeds the 2 MB per-photo limit."));
+      }
+    }
+    return Promise.all(files.map(function(file) {
+      return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() {
+          const dataUrl = String(reader.result || "");
+          const comma = dataUrl.indexOf(",");
+          if (comma < 0) return reject(new Error("Could not read " + file.name));
+          resolve({
+            name: file.name,
+            mimeType: file.type,
+            data: dataUrl.slice(comma + 1)
+          });
+        };
+        reader.onerror = function() { reject(new Error("Could not read " + file.name)); };
+        reader.readAsDataURL(file);
+      });
+    }));
+  }
+
+  function runWorkflowAction(action, recordId, tripId, deliveryRemarks, photos, actionButton, returnToAreaToday, returnDecisionProvided) {
+    if (!currentSessionToken) {
+      alert("Your session has expired. Please log in again.");
+      return;
+    }
+
+    const isResult = String(action || "").indexOf("RESULT:") === 0;
+    const remarks = String(deliveryRemarks || "").trim();
+    photos = Array.isArray(photos) ? photos : [];
+
+    if (isResult && !remarks) {
+      alert("Delivery remarks are required.");
+      return;
+    }
+
+    const actionLabel = action === "DEPART"
+      ? "depart this entire trip"
+      : isResult
+        ? "save the selected delivery result"
+        : ({
+            READY: "mark this invoice READY FOR DELIVERY",
+            TRANSIT: "mark this invoice IN TRANSIT",
+            ARRIVED: "mark this invoice ARRIVED",
+            RETURN_TO_AREA: "return to this area and resume delivery"
+          }[action] || action);
+
+    if (!window.confirm("Are you sure you want to " + actionLabel + "?")) {
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          if (actionButton) {
+            actionButton.disabled = false;
+            actionButton.textContent = "Save Update";
+          }
+          alert(
+            result && result.message
+              ? result.message
+              : "Workflow action was not confirmed."
+          );
+          return;
+        }
+
+        if (isResult) closeDeliveryResultModal();
+        alert(result.message || "Workflow action completed.");
+        loadDeliveryData();
+      })
+      .withFailureHandler(function(error) {
+        if (actionButton) {
+          actionButton.disabled = false;
+          actionButton.textContent = "Save Update";
+        }
+        alert(
+          error && error.message
+            ? error.message
+            : "Unable to complete workflow action."
+        );
+      })
+      .performDeliveryWorkflowAction(
+        currentSessionToken,
+        action,
+        recordId,
+        tripId,
+        remarks,
+        photos,
+        returnToAreaToday === true,
+        returnDecisionProvided === true
+      );
+  }
+
+  /****************************************************
+   * EDIT DELIVERY STATUS
+   ****************************************************/
+
+  function getVisibleDeliveryRecords() {
+    return [
+      ...(deliveryDashboardData.newDeliveries || []),
+      ...(deliveryDashboardData.ongoingDeliveries || []),
+      ...(deliveryDashboardData.finishedDeliveries || []),
+      ...(deliveryDashboardData.concernDeliveries || [])
+    ];
+  }
+
+
+ 
+function getAllowedStatusCorrections(record) {
+  const currentStatus = String(record && record.status || "")
+    .trim().toUpperCase();
+  const role = String(currentUserRole || "").trim().toUpperCase();
+
+  const allStatuses = [
+    "PENDING",
+    "SCHEDULED",
+    "READY FOR DELIVERY",
+    "DEPARTED",
+    "IN TRANSIT",
+    "ARRIVED",
+    "DELIVERED SUCCESSFULLY",
+    "DELIVERED - WITH CANCELLED ITEM(S)",
+    "DELIVERED - WITH INVOICE CONCERN",
+    "DELIVERED - WITH ITEM(S) TO FOLLOW",
+    "DELIVERED - WITH COA TO FOLLOW",
+    "DELIVERY ATTEMPT UNSUCCESSFUL (1)",
+    "DELIVERY ATTEMPT UNSUCCESSFUL (2)",
+    "BACKLOAD",
+    "CANCELLED"
+  ];
+
+  const resultStatuses = [
+    "DELIVERED SUCCESSFULLY",
+    "DELIVERED - WITH CANCELLED ITEM(S)",
+    "DELIVERED - WITH INVOICE CONCERN",
+    "DELIVERED - WITH ITEM(S) TO FOLLOW",
+    "DELIVERED - WITH COA TO FOLLOW",
+    "DELIVERY ATTEMPT UNSUCCESSFUL (1)",
+    "DELIVERY ATTEMPT UNSUCCESSFUL (2)",
+    "BACKLOAD",
+    "CANCELLED"
+  ];
+
+  // Encoder can use all statuses, but IN TRANSIT is available only when:
+  // 1) this invoice is currently DEPARTED; and
+  // 2) no other invoice in the same trip is IN TRANSIT or ARRIVED.
+  // The active invoice must first be corrected to DEPARTED to release the stop.
+  if (role === "ENCODER") {
+    return allStatuses.filter(function(status) {
+      if (status !== "IN TRANSIT") return true;
+
+      const tripId = String(record && record.tripId || "").trim();
+      const isDeparted = currentStatus === "DEPARTED";
+      const anotherActiveInvoice = record && record.tripHasActiveTransit === true;
+
+      return isDeparted && !!tripId && !anotherActiveInvoice;
+    });
+  }
+
+  // Helper Edit Status is only for correcting movement status.
+  // The delivery result is handled by the separate UPDATE STATUS action.
+  if (role === "HELPER") {
+    if (currentStatus === "IN TRANSIT") return ["DEPARTED"];
+    if (currentStatus === "ARRIVED") return ["DEPARTED", "IN TRANSIT"];
+    return [];
+  }
+
+  // Preserve the existing restricted correction rules for Admin/Manager.
+  if (currentStatus === "READY FOR DELIVERY") return ["SCHEDULED"];
+  if (currentStatus === "IN TRANSIT") return ["DEPARTED"];
+  if (currentStatus === "ARRIVED") return resultStatuses;
+  if (resultStatuses.includes(currentStatus)) {
+    return resultStatuses.filter(function(status) {
+      return status !== currentStatus;
+    });
+  }
+  return [];
+}
+
+
+  /****************************************************
+   * STATUS CORRECTION MODAL
+   ****************************************************/
+
+  function toggleCorrectionRemarks() {
+    const select = document.getElementById("editDeliveryStatus");
+    const group = document.getElementById("correctionRemarksGroup");
+    const remarks = document.getElementById("readyStatusRemarks");
+
+    if (!select || !group || !remarks) return;
+
+    const resultStatuses = [
+      "DELIVERED SUCCESSFULLY",
+      "DELIVERED - WITH CANCELLED ITEM(S)",
+      "DELIVERED - WITH INVOICE CONCERN",
+      "DELIVERED - WITH ITEM(S) TO FOLLOW",
+      "DELIVERED - WITH COA TO FOLLOW",
+      "DELIVERY ATTEMPT UNSUCCESSFUL (1)",
+      "DELIVERY ATTEMPT UNSUCCESSFUL (2)",
+      "BACKLOAD",
+      "CANCELLED"
+    ];
+
+    const needsRemarks = resultStatuses.includes(
+      String(select.value || "").trim().toUpperCase()
+    );
+
+    group.style.display = needsRemarks ? "" : "none";
+    remarks.required = needsRemarks;
+  }
+
+
+  function populateStatusCorrectionOptions(record) {
+    const select = document.getElementById("editDeliveryStatus");
+    const help = document.getElementById("statusCorrectionHelp");
+    const saveButton = document.getElementById("confirmReadyStatusButton");
+
+    if (!select || !help || !saveButton) return;
+
+    const allowedStatuses = getAllowedStatusCorrections(record);
+    select.replaceChildren();
+
+    if (!allowedStatuses.length) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No correction available";
+      select.appendChild(option);
+      select.disabled = true;
+      saveButton.disabled = true;
+      help.textContent =
+        "There is no permitted correction for this invoice's current status and trip.";
+      return;
+    }
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select corrected status";
+    select.appendChild(placeholder);
+
+    allowedStatuses.forEach(function(status) {
+      const option = document.createElement("option");
+      option.value = status;
+      option.textContent = status;
+      select.appendChild(option);
+    });
+
+    select.disabled = false;
+    saveButton.disabled = false;
+    help.textContent =
+      String(currentUserRole || "").trim().toUpperCase() === "ENCODER"
+        ? "IN TRANSIT is available only for a DEPARTED invoice when no other invoice in the same trip is IN TRANSIT or ARRIVED. Change the active invoice to DEPARTED first to release the trip."
+        : "Only permitted corrections are shown. Correcting a delivery result also requires updated delivery remarks.";
+  }
+
+
+  function openReadyStatusModal(record) {
+    if (!canShowEditStatus(record)) {
+      alert("You are not authorized to edit this delivery status.");
+      return;
+    }
+
+    if (!record || !record.id) {
+      alert("Invalid delivery record.");
+      return;
+    }
+
+    currentReadyRecord = record;
+
+    document.getElementById("readyStatusInvoice").textContent =
+      record.invoiceNumber || "-";
+    document.getElementById("readyStatusReason").value = "";
+    document.getElementById("readyStatusRemarks").value =
+      record.deliveryRemarks || "";
+    document.getElementById("readyStatusMessage").textContent = "";
+
+    const button = document.getElementById("confirmReadyStatusButton");
+    button.textContent = "Save Correction";
+    button.disabled = false;
+
+    populateStatusCorrectionOptions(record);
+    toggleCorrectionRemarks();
+
+    document.getElementById("readyStatusModal").classList.add("show");
+    document.body.classList.add("modal-open");
+
+    const select = document.getElementById("editDeliveryStatus");
+    if (select && !select.disabled) select.focus();
+  }
+
+
+  function closeReadyStatusModal() {
+    const modal = document.getElementById("readyStatusModal");
+    if (modal) modal.classList.remove("show");
+
+    document.body.classList.remove("modal-open");
+    currentReadyRecord = null;
+
+    const remarks = document.getElementById("readyStatusRemarks");
+    const reason = document.getElementById("readyStatusReason");
+    const group = document.getElementById("correctionRemarksGroup");
+    const message = document.getElementById("readyStatusMessage");
+
+    if (remarks) remarks.value = "";
+    if (reason) reason.value = "";
+    if (group) group.style.display = "none";
+    if (message) message.textContent = "";
+  }
+
+
+  function submitReadyStatus() {
+    if (!currentSessionToken || !currentReadyRecord) {
+      alert("No delivery record is currently selected.");
+      return;
+    }
+
+    if (!canShowEditStatus(currentReadyRecord)) {
+      alert("You are not authorized to update this delivery status.");
+      return;
+    }
+
+    const select = document.getElementById("editDeliveryStatus");
+    const reasonInput = document.getElementById("readyStatusReason");
+    const remarksInput = document.getElementById("readyStatusRemarks");
+    const message = document.getElementById("readyStatusMessage");
+    const button = document.getElementById("confirmReadyStatusButton");
+
+    const newStatus = String(select && select.value || "").trim().toUpperCase();
+    const reason = String(reasonInput && reasonInput.value || "").trim();
+    const deliveryRemarks = String(remarksInput && remarksInput.value || "").trim();
+
+    if (!newStatus || !select || select.disabled) {
+      message.textContent = "No permitted status correction is available.";
+      return;
+    }
+
+    if (!reason) {
+      message.textContent = "Reason / Justification is required.";
+      reasonInput.focus();
+      return;
+    }
+
+    if (reason.length > 2000) {
+      message.textContent = "Reason cannot exceed 2,000 characters.";
+      return;
+    }
+
+    const resultStatuses = [
+      "DELIVERED SUCCESSFULLY",
+      "DELIVERED - WITH CANCELLED ITEM(S)",
+      "DELIVERED - WITH INVOICE CONCERN",
+      "DELIVERED - WITH ITEM(S) TO FOLLOW",
+      "DELIVERED - WITH COA TO FOLLOW",
+      "DELIVERY ATTEMPT UNSUCCESSFUL (1)",
+      "DELIVERY ATTEMPT UNSUCCESSFUL (2)",
+      "BACKLOAD",
+      "CANCELLED"
+    ];
+
+    if (resultStatuses.includes(newStatus) && !deliveryRemarks) {
+      message.textContent =
+        "Updated delivery remarks are required for a delivery-result correction.";
+      remarksInput.focus();
+      return;
+    }
+
+    if (deliveryRemarks.length > 4000) {
+      message.textContent = "Delivery remarks cannot exceed 4,000 characters.";
+      return;
+    }
+
+    const oldStatus = String(currentReadyRecord.status || "")
+      .trim().toUpperCase();
+
+    if (newStatus === oldStatus) {
+      message.textContent = "The selected status is already the current status.";
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+    message.textContent = "Updating status and creating audit log...";
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          button.disabled = false;
+          button.textContent = "Save Correction";
+          message.textContent = result && result.message
+            ? result.message
+            : "The status update could not be confirmed.";
+          return;
+        }
+
+        const invoiceNumber =
+          result.invoiceNumber || currentReadyRecord.invoiceNumber || "";
+
+        closeReadyStatusModal();
+        alert("Invoice " + invoiceNumber + " status updated to " + newStatus + ".");
+        loadDeliveryData();
+      })
+      .withFailureHandler(function(error) {
+        button.disabled = false;
+        button.textContent = "Save Correction";
+        message.textContent = error && error.message
+          ? error.message
+          : "Unable to update delivery status.";
+      })
+      .updateDeliveryStatus(
+        currentSessionToken,
+        Number(currentReadyRecord.id),
+        newStatus,
+        reason,
+        deliveryRemarks
+      );
+  }
+
+
+  /****************************************************
+   * STATUS BADGE
+   ****************************************************/
+
+  function createStatusBadge(status) {
+    const badge = document.createElement("span");
+
+    const normalized = String(status || "UNKNOWN").trim().toUpperCase();
+
+    badge.className = "status-label";
+
+    if (normalized === "DELIVERED SUCCESSFULLY") {
+      badge.classList.add("status-success");
+    } else if (
+      normalized.includes("UNSUCCESSFUL") ||
+      normalized === "BACKLOAD" ||
+      normalized === "CANCELLED" ||
+      normalized.includes("CONCERN") ||
+      normalized.includes("ISSUE") ||
+      normalized.includes("FOLLOW") ||
+      normalized.includes("COA")
+    ) {
+      badge.classList.add("status-warning");
+    } else if (normalized === "PENDING") {
+      badge.classList.add("status-pending");
+    } else {
+      badge.classList.add("status-progress");
+    }
+
+    badge.textContent = status || "UNKNOWN";
+    return badge;
+  }
+
+
+  /****************************************************
+   * LOAD ACTIVE HELPERS
+   ****************************************************/
+
+  function loadTripHelpers(containerId, selectedIds, callback) {
+    const container = document.getElementById(containerId);
+
+    container.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "assignment-help-text";
+    loading.textContent = "Loading available helpers...";
+    container.appendChild(loading);
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          container.textContent = "Unable to retrieve helpers.";
+          if (callback) callback(false);
+          return;
+        }
+
+        deliveryAssignmentHelpers = result.helpers || [];
+        container.replaceChildren();
+
+        if (!deliveryAssignmentHelpers.length) {
+          const empty = document.createElement("p");
+          empty.className = "assignment-help-text";
+          empty.textContent = "No active helpers found.";
+          container.appendChild(empty);
+
+          if (callback) callback(true);
+          return;
+        }
+
+        deliveryAssignmentHelpers.forEach(function(helper) {
+          const label = document.createElement("label");
+          label.className = "helper-checkbox-item";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.value = helper.id;
+          checkbox.checked = selectedIds.includes(Number(helper.id));
+
+          const name = document.createElement("span");
+          name.textContent = helper.name;
+
+          label.append(checkbox, name);
+          container.appendChild(label);
+        });
+
+        if (callback) callback(true);
+      })
+      .withFailureHandler(function(error) {
+        container.textContent = error.message || "Unable to load helpers.";
+        if (callback) callback(false);
+      })
+      .getDeliveryAssignmentOptions(currentSessionToken);
+  }
+
+
+  function getSelectedHelperIds(containerId) {
+    return Array.from(
+      document.querySelectorAll(
+        "#" + containerId + " input[type='checkbox']:checked"
+      )
+    ).map(function(checkbox) {
+      return Number(checkbox.value);
+    });
+  }
+
+
+  /****************************************************
+   * CREATE NEW TRIP / ADD SCHEDULE
+   ****************************************************/
+
+  function openTripModal() {
+    if (!canCreateTrips()) {
+      alert("You are not authorized to create delivery trips.");
+      return;
+    }
+
+    const selectedIds = Array.from(selectedInvoiceIds);
+
+    if (!selectedIds.length) {
+      alert("Please select at least one invoice.");
+      return;
+    }
+
+    currentTripAction =
+      currentDeliveryTab === "concern" ? "ADD_SCHEDULE" : "NEW_TRIP";
+
+    const title = currentTripAction === "ADD_SCHEDULE"
+      ? "Add New Schedule"
+      : "Create New Trip";
+
+    document.getElementById("tripModalTitle").textContent = title;
+
+    document.getElementById("tripModalDescription").textContent =
+      currentTripAction === "ADD_SCHEDULE"
+        ? "Schedule the selected invoices again under a new Trip ID."
+        : "Assign the selected Pending invoices to a new delivery trip.";
+
+    document.getElementById("saveTripButton").textContent =
+      currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+
+    document.getElementById("tripDeliveryDate").value = "";
+    document.getElementById("tripTruck").value = "";
+    document.getElementById("tripDriver").value = "";
+    document.getElementById("tripReason").value = "";
+
+    renderTripInvoiceAreas("tripInvoiceAreaList", selectedIds, getTabRecords());
+
+    document.getElementById("tripModal").classList.add("show");
+    document.body.classList.add("modal-open");
+
+    setTripMessage("", "");
+
+    const saveButton = document.getElementById("saveTripButton");
+    saveButton.disabled = true;
+
+    loadTripHelpers("tripHelpers", [], function(success) {
+      saveButton.disabled = !success;
+    });
+  }
+
+
+  function renderTripInvoiceAreas(containerId, recordIds, sourceRecords) {
+    const container = document.getElementById(containerId);
+    container.replaceChildren();
+
+    const selectedIds = recordIds.map(Number);
+
+    const records = sourceRecords.filter(function(record) {
+      return selectedIds.includes(Number(record.id));
+    });
+
+    records.forEach(function(record) {
+      const row = document.createElement("div");
+      row.className = "trip-area-row";
+
+      const invoice = document.createElement("div");
+      invoice.className = "trip-area-invoice";
+      invoice.textContent =
+        (record.invoiceNumber || "Invoice") + " — " + (record.customerName || "");
+
+      const area = document.createElement("input");
+      area.type = "text";
+      area.className = "trip-invoice-area-input";
+      area.dataset.recordId = record.id;
+      area.placeholder = "Enter delivery area";
+      area.value = record.area || "";
+
+      row.append(invoice, area);
+      container.appendChild(row);
+    });
+  }
+
+
+  function closeTripModal() {
+    document.getElementById("tripModal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+    setTripMessage("", "");
+  }
+
+
+  function setTripMessage(message, type) {
+    const element = document.getElementById("tripMessage");
+    element.textContent = message;
+    element.className = "trip-message";
+    if (type) element.classList.add(type);
+  }
+
+
+  function submitDeliveryTrip() {
+    if (!currentSessionToken || !canCreateTrips()) {
+      alert("You are not authorized to create delivery trips.");
+      return;
+    }
+
+    const recordIds = Array.from(selectedInvoiceIds);
+
+    if (!recordIds.length) {
+      setTripMessage("Select at least one invoice.", "error");
+      return;
+    }
+
+    const deliveryDate = document.getElementById("tripDeliveryDate").value;
+    const truck = document.getElementById("tripTruck").value.trim();
+    const driver = document.getElementById("tripDriver").value.trim();
+    const reason = document.getElementById("tripReason").value.trim();
+    const helperIds = getSelectedHelperIds("tripHelpers");
+
+    if (!deliveryDate || !truck || !driver) {
+      setTripMessage("Please complete the delivery date, truck, and driver.", "error");
+      return;
+    }
+
+    if (!helperIds.length) {
+      setTripMessage("Please select at least one helper.", "error");
+      return;
+    }
+
+    if (!reason) {
+      setTripMessage("Reason / Justification is required.", "error");
+      document.getElementById("tripReason").focus();
+      return;
+    }
+
+    if (reason.length > 2000) {
+      setTripMessage("Reason cannot exceed 2,000 characters.", "error");
+      return;
+    }
+
+    const invoiceAreas = {};
+    const areaInputs = document.querySelectorAll(
+      "#tripInvoiceAreaList .trip-invoice-area-input"
+    );
+
+    let missingArea = false;
+
+    areaInputs.forEach(function(input) {
+      const recordId = Number(input.dataset.recordId);
+      const area = input.value.trim();
+
+      if (!area) missingArea = true;
+      invoiceAreas[recordId] = area;
+    });
+
+    if (missingArea || Object.keys(invoiceAreas).length !== recordIds.length) {
+      setTripMessage("Please enter an area for every selected invoice.", "error");
+      return;
+    }
+
+    const schedule = {
+      deliveryDate: deliveryDate,
+      truck: truck,
+      driver: driver,
+      helperIds: helperIds,
+      invoiceAreas: invoiceAreas
+    };
+
+    const button = document.getElementById("saveTripButton");
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    setTripMessage("Creating the trip and writing audit logs to Odoo...", "");
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        button.disabled = false;
+        button.textContent =
+          currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+
+        if (!result || !result.success) {
+          setTripMessage(
+            result && result.message ? result.message : "The trip could not be created.",
+            "error"
+          );
+          return;
+        }
+
+        alert(
+          (currentTripAction === "ADD_SCHEDULE"
+            ? "New schedule added successfully."
+            : "Delivery trip created successfully.") +
+          "\n\nTrip ID: " + result.tripId +
+          "\nInvoices: " + result.invoiceCount +
+          "\n\nAudit logs have been created."
+        );
+
+        selectedInvoiceIds.clear();
+        closeTripModal();
+        switchDeliveryTab("ongoing");
+        loadDeliveryData();
+      })
+      .withFailureHandler(function(error) {
+        button.disabled = false;
+        button.textContent =
+          currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+
+        setTripMessage(
+          error.message || "Unable to create the delivery trip.",
+          "error"
+        );
+      })
+      .createDeliveryTrip(
+        currentSessionToken,
+        recordIds,
+        schedule,
+        reason,
+        currentTripAction
+      );
+  }
+
+
+  /****************************************************
+   * EDIT EXISTING TRIP
+   ****************************************************/
+
+  function openEditTripModal(tripId, records) {
+    if (!canEditAssignments()) {
+      alert("You are not authorized to edit delivery trips.");
+      return;
+    }
+
+    currentEditTripId = tripId;
+    currentEditTripRecords = records.slice();
+
+    const first = records[0];
+
+    document.getElementById("editTripIdDisplay").textContent = tripId;
+    document.getElementById("editTripDeliveryDate").value = first.deliveryDate || "";
+    document.getElementById("editTripTruck").value = first.truck || "";
+    document.getElementById("editTripDriver").value = first.driver || "";
+    document.getElementById("editTripReason").value = "";
+
+    renderEditTripAreas(records);
+
+    document.getElementById("editTripModal").classList.add("show");
+    document.body.classList.add("modal-open");
+
+    setEditTripMessage("", "");
+
+    const button = document.getElementById("saveEditTripButton");
+    button.disabled = true;
+
+    loadTripHelpers(
+      "editTripHelpers",
+      (first.helperIds || []).map(Number),
+      function(success) {
+        button.disabled = !success;
+      }
+    );
+  }
+
+
+  function renderEditTripAreas(records) {
+    const container = document.getElementById("editTripInvoiceAreaList");
+    container.replaceChildren();
+
+    records.forEach(function(record) {
+      const row = document.createElement("div");
+      row.className = "trip-area-row";
+
+      const invoice = document.createElement("div");
+      invoice.className = "trip-area-invoice";
+      invoice.textContent =
+        (record.invoiceNumber || "Invoice") + " — " + (record.customerName || "");
+
+      const area = document.createElement("input");
+      area.type = "text";
+      area.className = "edit-trip-invoice-area-input";
+      area.dataset.recordId = record.id;
+      area.value = record.area || "";
+      area.placeholder = "Enter delivery area";
+
+      row.append(invoice, area);
+      container.appendChild(row);
+    });
+  }
+
+
+  function closeEditTripModal() {
+    document.getElementById("editTripModal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+
+    currentEditTripId = "";
+    currentEditTripRecords = [];
+
+    setEditTripMessage("", "");
+  }
+
+
+  function setEditTripMessage(message, type) {
+    const element = document.getElementById("editTripMessage");
+    element.textContent = message;
+    element.className = "trip-message";
+    if (type) element.classList.add(type);
+  }
+
+
+  function submitEditTrip() {
+    if (!currentSessionToken || !canEditAssignments()) {
+      alert("You are not authorized to edit delivery trips.");
+      return;
+    }
+
+    if (!currentEditTripId || !currentEditTripRecords.length) {
+      setEditTripMessage("No trip is currently selected.", "error");
+      return;
+    }
+
+    const deliveryDate = document.getElementById("editTripDeliveryDate").value;
+    const truck = document.getElementById("editTripTruck").value.trim();
+    const driver = document.getElementById("editTripDriver").value.trim();
+    const helperIds = getSelectedHelperIds("editTripHelpers");
+    const reason = document.getElementById("editTripReason").value.trim();
+
+    if (!deliveryDate || !truck || !driver) {
+      setEditTripMessage("Delivery date, truck, and driver are required.", "error");
+      return;
+    }
+
+    if (!helperIds.length) {
+      setEditTripMessage("Select at least one helper.", "error");
+      return;
+    }
+
+    if (!reason) {
+      setEditTripMessage("Reason for Change is required.", "error");
+      document.getElementById("editTripReason").focus();
+      return;
+    }
+
+    if (reason.length > 2000) {
+      setEditTripMessage("Reason cannot exceed 2,000 characters.", "error");
+      return;
+    }
+
+    const invoiceAreas = {};
+    const areaInputs = document.querySelectorAll(
+      "#editTripInvoiceAreaList .edit-trip-invoice-area-input"
+    );
+
+    let missingArea = false;
+
+    areaInputs.forEach(function(input) {
+      const recordId = Number(input.dataset.recordId);
+      const area = input.value.trim();
+
+      if (!area) missingArea = true;
+      invoiceAreas[recordId] = area;
+    });
+
+    if (missingArea) {
+      setEditTripMessage("Every invoice must have a delivery area.", "error");
+      return;
+    }
+
+    const changes = {
+      deliveryDate: deliveryDate,
+      truck: truck,
+      driver: driver,
+      helperIds: helperIds,
+      invoiceAreas: invoiceAreas
+    };
+
+    const button = document.getElementById("saveEditTripButton");
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    setEditTripMessage("Updating trip and creating audit logs...", "");
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        button.disabled = false;
+        button.textContent = "Save Trip Changes";
+
+        if (!result || !result.success) {
+          setEditTripMessage(
+            result && result.message ? result.message : "The trip could not be updated.",
+            "error"
+          );
+          return;
+        }
+
+        alert(
+          "Trip updated successfully.\n\n" +
+          "Trip ID: " + result.tripId +
+          "\nUpdated invoices: " + result.updatedInvoiceCount +
+          "\n\nAudit logs have been created."
+        );
+
+        closeEditTripModal();
+        loadDeliveryData();
+      })
+      .withFailureHandler(function(error) {
+        button.disabled = false;
+        button.textContent = "Save Trip Changes";
+
+        setEditTripMessage(
+          error.message || "Unable to update the trip.",
+          "error"
+        );
+      })
+      .updateDeliveryTrip(
+        currentSessionToken,
+        currentEditTripId,
+        changes,
+        reason
+      );
+  }
+
+
+  /****************************************************
+   * REGULAR ASSIGNMENT EDITOR
+   ****************************************************/
+
+  function openAssignmentEditor(record) {
+    if (!canEditAssignments()) {
+      alert("You are not authorized to edit assignments.");
+      return;
+    }
+
+    currentAssignmentRecord = record;
+
+    document.getElementById("assignmentInvoiceNumber").textContent =
+      record.invoiceNumber || "-";
+
+    document.getElementById("assignmentArea").value = record.area || "";
+    document.getElementById("assignmentTruck").value = record.truck || "";
+    document.getElementById("assignmentDriver").value = record.driver || "";
+    document.getElementById("assignmentReason").value = "";
+
+    document.getElementById("assignmentModal").classList.add("show");
+    document.body.classList.add("modal-open");
+
+    setAssignmentMessage("", "");
+
+    const button = document.getElementById("saveAssignmentButton");
+    button.disabled = true;
+
+    loadTripHelpers(
+      "assignmentHelpers",
+      (record.helperIds || []).map(Number),
+      function(success) {
+        button.disabled = !success;
+      }
+    );
+  }
+
+
+  function closeAssignmentModal() {
+    document.getElementById("assignmentModal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+
+    currentAssignmentRecord = null;
+    setAssignmentMessage("", "");
+  }
+
+
+  function setAssignmentMessage(message, type) {
+    const element = document.getElementById("assignmentMessage");
+    element.textContent = message;
+    element.className = "assignment-message";
+    if (type) element.classList.add(type);
+  }
+
+
+  function submitAssignmentChanges() {
+    if (!currentSessionToken || !currentAssignmentRecord) {
+      alert("No delivery record is currently selected.");
+      return;
+    }
+
+    if (!canEditAssignments()) {
+      alert("You are not authorized to edit assignments.");
+      return;
+    }
+
+    const reason = document.getElementById("assignmentReason").value.trim();
+
+    if (!reason) {
+      setAssignmentMessage(
+        "Please enter a reason for changing this assignment.",
+        "error"
+      );
+      document.getElementById("assignmentReason").focus();
+      return;
+    }
+
+    if (reason.length > 2000) {
+      setAssignmentMessage("Reason cannot exceed 2,000 characters.", "error");
+      return;
+    }
+
+    const changes = {
+      area: document.getElementById("assignmentArea").value.trim(),
+      truck: document.getElementById("assignmentTruck").value.trim(),
+      driver: document.getElementById("assignmentDriver").value.trim(),
+      helperIds: getSelectedHelperIds("assignmentHelpers")
+    };
+
+    const button = document.getElementById("saveAssignmentButton");
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    setAssignmentMessage(
+      "Saving assignment changes and creating audit logs...",
+      ""
+    );
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        button.disabled = false;
+        button.textContent = "Save Changes";
+
+        if (!result || !result.success) {
+          setAssignmentMessage(
+            result && result.message ? result.message : "The assignment could not be saved.",
+            "error"
+          );
+          return;
+        }
+
+        alert(
+          "Assignment updated successfully.\n\n" +
+          "Invoice: " + result.invoiceNumber +
+          "\nChanged fields: " + result.changedFields.join(", ") +
+          "\n\nAudit logs have been created."
+        );
+
+        closeAssignmentModal();
+        loadDeliveryData();
+      })
+      .withFailureHandler(function(error) {
+        button.disabled = false;
+        button.textContent = "Save Changes";
+
+        setAssignmentMessage(
+          error.message || "Unable to save assignment changes.",
+          "error"
+        );
+      })
+      .saveDeliveryAssignment(
+        currentSessionToken,
+        currentAssignmentRecord.id,
+        changes,
+        reason
+      );
+  }
+
+
+  /****************************************************
+   * AUDIT LOGS
+   ****************************************************/
+
+  function loadAuditLogs() {
+    if (!currentSessionToken || auditLogsLoading) return;
+
+    auditLogsLoading = true;
+
+    const button = document.getElementById("refreshAuditButton");
+    const tbody = document.getElementById("auditTableBody");
+    const message = document.getElementById("auditMessage");
+    const emptyState = document.getElementById("auditEmptyState");
+
+    button.disabled = true;
+    button.textContent = "Loading...";
+    message.textContent = "";
+    emptyState.style.display = "none";
+
+    tbody.replaceChildren();
+
+    const loadingRow = document.createElement("tr");
+    const loadingCell = document.createElement("td");
+
+    loadingCell.colSpan = 10;
+    loadingCell.className = "loading-message";
+    loadingCell.textContent = "Retrieving audit history from Odoo...";
+
+    loadingRow.appendChild(loadingCell);
+    tbody.appendChild(loadingRow);
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        auditLogsLoading = false;
+
+        button.disabled = false;
+        button.textContent = "↻ Refresh Logs";
+
+        if (!result || !result.success) {
+          auditLogsLoaded = false;
+
+          tbody.replaceChildren();
+
+          const errorRow = document.createElement("tr");
+          const errorCell = document.createElement("td");
+
+          errorCell.colSpan = 10;
+          errorCell.className = "audit-error";
+          errorCell.textContent =
+            result && result.message
+              ? result.message
+              : "Unable to retrieve audit logs.";
+
+          errorRow.appendChild(errorCell);
+          tbody.appendChild(errorRow);
+          return;
+        }
+
+        auditLogsData = Array.isArray(result.logs) ? result.logs : [];
+        auditLogsLoaded = true;
+
+        document.getElementById("auditCount").textContent =
+          result.totalCount ?? auditLogsData.length;
+
+        populateAuditUserFilter();
+        renderAuditLogs();
+      })
+      .withFailureHandler(function(error) {
+        auditLogsLoading = false;
+        auditLogsLoaded = false;
+
+        button.disabled = false;
+        button.textContent = "↻ Refresh Logs";
+
+        tbody.replaceChildren();
+
+        const errorRow = document.createElement("tr");
+        const errorCell = document.createElement("td");
+
+        errorCell.colSpan = 10;
+        errorCell.className = "audit-error";
+        errorCell.textContent =
+          error.message || "Unable to retrieve audit logs.";
+
+        errorRow.appendChild(errorCell);
+        tbody.appendChild(errorRow);
+      })
+      .getDeliveryAuditLogs(currentSessionToken);
+  }
+
+
+  function populateAuditUserFilter() {
+    const select = document.getElementById("auditUserFilter");
+    const previousValue = select.value;
+
+    const users = [
+      ...new Set(
+        auditLogsData
+          .map(function(log) {
+            return String(log.user || "").trim();
+          })
+          .filter(Boolean)
+      )
+    ].sort(function(a, b) {
+      return a.localeCompare(b);
+    });
+
+    select.replaceChildren();
+
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All Users";
+    select.appendChild(allOption);
+
+    users.forEach(function(user) {
+      const option = document.createElement("option");
+      option.value = user;
+      option.textContent = user;
+      select.appendChild(option);
+    });
+
+    if (users.includes(previousValue)) {
+      select.value = previousValue;
+    }
+  }
+
+
+  function renderAuditLogs() {
+    const tbody = document.getElementById("auditTableBody");
+    const emptyState = document.getElementById("auditEmptyState");
+
+    if (!auditLogsLoaded) return;
+
+    const search = document.getElementById("auditSearch")
+      .value.trim().toLowerCase();
+
+    const actionFilter = document.getElementById("auditActionFilter")
+      .value.toUpperCase();
+
+    const userFilter = document.getElementById("auditUserFilter").value;
+    const dateFilter = document.getElementById("auditDateFilter").value;
+
+    const filteredLogs = auditLogsData.filter(function(log) {
+      const searchable = [
+        log.invoiceNumber,
+        log.action,
+        log.field,
+        log.oldValue,
+        log.newValue,
+        log.reason,
+        log.user,
+        log.userRole,
+        log.transactionId
+      ].map(function(value) {
+        return value == null ? "" : String(value);
+      }).join(" ").toLowerCase();
+
+      if (search && !searchable.includes(search)) return false;
+
+      if (
+        actionFilter &&
+        String(log.action || "").toUpperCase() !== actionFilter
+      ) {
+        return false;
+      }
+
+      if (userFilter && String(log.user || "") !== userFilter) {
+        return false;
+      }
+
+      if (dateFilter && getAuditDate(log.timestamp) !== dateFilter) {
+        return false;
+      }
+
+      return true;
+    });
+
+    tbody.replaceChildren();
+
+    document.getElementById("auditTotalCount").textContent =
+      "Showing " + filteredLogs.length +
+      " of " + auditLogsData.length + " audit entries";
+
+    emptyState.style.display = filteredLogs.length ? "none" : "block";
+
+    if (!filteredLogs.length) return;
+
+    filteredLogs.forEach(function(log) {
+      const row = document.createElement("tr");
+
+      appendAuditCell(row, formatAuditTimestamp(log.timestamp));
+      appendAuditCell(row, log.invoiceNumber || "-");
+
+      const actionCell = document.createElement("td");
+      const badge = document.createElement("span");
+
+      badge.className = "audit-action-badge";
+
+      const action = String(log.action || "UNKNOWN").toUpperCase();
+
+      if (action === "STATUS UPDATE") {
+        badge.classList.add("status-update");
+      } else if (action === "DELETE" || action === "PHOTO DELETE") {
+        badge.classList.add("delete");
+      }
+
+      badge.textContent = log.action || "UNKNOWN";
+      actionCell.appendChild(badge);
+      row.appendChild(actionCell);
+
+      appendAuditCell(row, log.field || "-");
+      appendAuditCell(row, log.oldValue || "-", "audit-value");
+      appendAuditCell(row, log.newValue || "-", "audit-value");
+      appendAuditCell(row, log.reason || "-", "audit-reason");
+      appendAuditCell(row, log.user || "-", "audit-user");
+      appendAuditCell(row, log.userRole || "-");
+      appendAuditCell(row, log.transactionId || "-");
+
+      tbody.appendChild(row);
+    });
+  }
+
+
+  function appendAuditCell(row, value, className) {
+    const cell = document.createElement("td");
+
+    cell.textContent =
+      value == null || value === "" ? "-" : String(value);
+
+    if (className) cell.className = className;
+
+    row.appendChild(cell);
+  }
+
+
+  function getAuditDate(timestamp) {
+    if (!timestamp) return "";
+
+    const value = String(timestamp).trim();
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+
+    if (match) return match[1];
+
+    const date = new Date(value);
+
+    if (isNaN(date.getTime())) return "";
+
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+
+
+  function formatAuditTimestamp(timestamp) {
+    if (!timestamp) return "-";
+    return String(timestamp).trim().replace("T", " ");
+  }
+
+
+  function clearAuditFilters() {
+    document.getElementById("auditSearch").value = "";
+    document.getElementById("auditActionFilter").value = "";
+    document.getElementById("auditUserFilter").value = "";
+    document.getElementById("auditDateFilter").value = "";
+
+    renderAuditLogs();
+  }
+
+
+  /****************************************************
+   * ERROR DISPLAY
+   ****************************************************/
+
+  function showDeliveryError(message) {
+    const tableBody = document.getElementById("deliveryTableBody");
+    const cardList = document.getElementById("deliveryCardList");
+
+    tableBody.replaceChildren();
+    cardList.replaceChildren();
+
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+
+    cell.colSpan = 12;
+    cell.className = "error-message";
+    cell.textContent = message;
+
+    row.appendChild(cell);
+    tableBody.appendChild(row);
+
+    const errorCard = document.createElement("div");
+    errorCard.className = "empty-card-state error-message";
+    errorCard.textContent = message;
+
+    cardList.appendChild(errorCard);
+  }
+
+
+  /****************************************************
+   * LOGOUT
+   ****************************************************/
+
+  function signOut() {
+    const token = currentSessionToken;
+
+    currentSessionToken = null;
+    currentUserRole = "";
+    currentReadyRecord = null;
+
+    selectedInvoiceIds.clear();
+
+    auditLogsData = [];
+    auditLogsLoaded = false;
+    auditLogsLoading = false;
+
+    google.script.run
+      .withSuccessHandler(function() {
+        deliveryDashboardData = {
+          newDeliveries: [],
+          ongoingDeliveries: [],
+          finishedDeliveries: [],
+          concernDeliveries: []
+        };
+
+        document.getElementById("dashboardView").style.display = "none";
+        document.getElementById("loginView").style.display = "flex";
+
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("deliverySearch").value = "";
+
+        document.getElementById("auditSearch").value = "";
+        document.getElementById("auditActionFilter").value = "";
+        document.getElementById("auditUserFilter").replaceChildren();
+        document.getElementById("auditDateFilter").value = "";
+        document.getElementById("auditCount").textContent = "0";
+      })
+      .withFailureHandler(function() {
+        alert("Logout failed. Please reload the page.");
+      })
+      .logout(token);
+  }
+</script>
