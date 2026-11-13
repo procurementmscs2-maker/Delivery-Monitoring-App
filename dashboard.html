@@ -949,6 +949,95 @@
     }
   }
 
+
+  /* ==========================================================
+     NATURAL PAGE SCROLL — REMOVE RESTRICTED INVOICE VIEWPORT
+     The browser page now scrolls as one document. Invoice lists
+     and audit history no longer scroll inside fixed-height panels.
+     ========================================================== */
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+  }
+
+  #dashboardView {
+    height: auto !important;
+    min-height: 100vh;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #dashboardView > .dashboard-container {
+    height: auto !important;
+    min-height: 100vh;
+    overflow: visible !important;
+  }
+
+  #dashboardView #deliverySection {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  #dashboardView #deliverySection > .table-wrapper {
+    display: block !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    overscroll-behavior: auto !important;
+    position: static !important;
+  }
+
+  #dashboardView #deliverySection > .delivery-card-list {
+    display: block !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-overflow-scrolling: auto !important;
+  }
+
+  #dashboardView #auditLogsSection {
+    display: block !important;
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #dashboardView #auditLogsSection > .audit-table-wrapper {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    overscroll-behavior: auto !important;
+    position: static !important;
+  }
+
+  @media (max-width: 650px) {
+    #dashboardView #deliverySection > .delivery-card-list {
+      display: block !important;
+      flex: 0 0 auto !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+
+    #dashboardView #deliverySection > .table-wrapper {
+      display: none !important;
+    }
+  }
+
 </style>
 
 <div id="dashboardView" style="display:none;">
