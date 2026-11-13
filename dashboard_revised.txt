@@ -1114,7 +1114,7 @@
         <div>
           <strong id="selectedInvoiceCount">0 invoices selected</strong>
           <p class="assignment-help-text">
-            Select invoices to create one delivery trip.
+            Select invoices to create, reschedule, or consolidate into one trip.
           </p>
         </div>
 
@@ -1143,6 +1143,15 @@
             onclick="openTripModal()"
           >
             ADD SCHEDULE
+          </button>
+
+          <button
+            type="button"
+            class="primary-action-button"
+            id="reassignTripButton"
+            onclick="openTripModal()"
+          >
+            REASSIGN TO NEW TRIP
           </button>
         </div>
       </div>
@@ -2043,15 +2052,21 @@
     const selectionAvailable =
       canCreateTrips() &&
       (currentDeliveryTab === "new" ||
-       currentDeliveryTab === "concern");
+       currentDeliveryTab === "concern" ||
+       currentDeliveryTab === "ongoing");
 
     selectionToolbar.classList.toggle("show", selectionAvailable);
+    document.getElementById("selectionHeader").style.display =
+      selectionAvailable ? "" : "none";
 
     document.getElementById("createTripButton").style.display =
       currentDeliveryTab === "new" ? "" : "none";
 
     document.getElementById("addScheduleButton").style.display =
       currentDeliveryTab === "concern" ? "" : "none";
+
+    document.getElementById("reassignTripButton").style.display =
+      currentDeliveryTab === "ongoing" ? "" : "none";
 
     if (!records.length) {
       const message = query
@@ -2349,6 +2364,56 @@
 
     document.getElementById("createTripButton").disabled = count === 0;
     document.getElementById("addScheduleButton").disabled = count === 0;
+    document.getElementById("reassignTripButton").disabled = count === 0;
+  }
+
+  function isReassignableOngoingStatus(status) {
+    return [
+      "SCHEDULED",
+      "READY FOR DELIVERY",
+      "DEPARTED",
+      "ARRIVED"
+    ].includes(String(status || "").trim().toUpperCase());
+  }
+
+  function showInTransitReassignmentWarning(invoiceNumber) {
+    const invoice = invoiceNumber || "this invoice";
+    alert(
+      "Cannot Reassign Invoice\n\n" +
+      "Invoice " + invoice +
+      " is currently IN TRANSIT. It must be changed to DEPARTED before it can be reassigned to another trip.\n\n" +
+      "Hindi Maaaring Ilipat ang Invoice\n\n" +
+      "Ang invoice na " + invoice +
+      " ay kasalukuyang IN TRANSIT. Kailangang palitan muna ang status nito sa DEPARTED bago ito mailipat sa ibang biyahe."
+    );
+  }
+
+  function handleInvoiceSelection(record, checkbox) {
+    const status = String(record.status || "").trim().toUpperCase();
+
+    if (currentDeliveryTab === "ongoing" && status === "IN TRANSIT") {
+      checkbox.checked = false;
+      selectedInvoiceIds.delete(Number(record.id));
+      updateSelectionToolbar();
+      showInTransitReassignmentWarning(record.invoiceNumber);
+      return;
+    }
+
+    if (
+      currentDeliveryTab === "ongoing" &&
+      !isReassignableOngoingStatus(status)
+    ) {
+      checkbox.checked = false;
+      selectedInvoiceIds.delete(Number(record.id));
+      updateSelectionToolbar();
+      alert(
+        "This invoice cannot be reassigned from its current status: " + status + ".\n\n" +
+        "Hindi maililipat ang invoice mula sa kasalukuyang status nito: " + status + "."
+      );
+      return;
+    }
+
+    toggleInvoiceSelection(record.id, checkbox.checked);
   }
 
   function toggleInvoiceSelection(recordId, checked) {
@@ -2379,24 +2444,40 @@
 
     if (
       canCreateTrips() &&
-      (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+      (currentDeliveryTab === "new" ||
+       currentDeliveryTab === "concern" ||
+       currentDeliveryTab === "ongoing")
     ) {
       const selectionCell = document.createElement("td");
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "invoice-select";
+
+      const status = String(record.status || "").trim().toUpperCase();
       const finalAttempt = currentDeliveryTab === "concern" &&
-        String(record.status || "").trim().toUpperCase() === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
-      checkbox.disabled = finalAttempt;
-      checkbox.checked = !finalAttempt && selectedInvoiceIds.has(Number(record.id));
+        status === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
+      const blockedOngoingStatus = currentDeliveryTab === "ongoing" &&
+        status !== "IN TRANSIT" &&
+        !isReassignableOngoingStatus(status);
+
+      checkbox.disabled = finalAttempt || blockedOngoingStatus;
+      checkbox.checked =
+        !checkbox.disabled &&
+        selectedInvoiceIds.has(Number(record.id));
+
       if (finalAttempt) {
         selectedInvoiceIds.delete(Number(record.id));
         checkbox.title = "Second unsuccessful attempt is final; it cannot be scheduled again.";
+      } else if (status === "IN TRANSIT" && currentDeliveryTab === "ongoing") {
+        checkbox.title = "IN TRANSIT invoices cannot be reassigned. Change status to DEPARTED first.";
+      } else if (blockedOngoingStatus) {
+        checkbox.title = "Only SCHEDULED, READY FOR DELIVERY, DEPARTED, and ARRIVED invoices can be reassigned.";
+        selectedInvoiceIds.delete(Number(record.id));
       }
 
       checkbox.addEventListener("change", function() {
-        toggleInvoiceSelection(record.id, checkbox.checked);
+        handleInvoiceSelection(record, checkbox);
       });
 
       selectionCell.appendChild(checkbox);
@@ -2499,29 +2580,52 @@
 
     if (
       canCreateTrips() &&
-      (currentDeliveryTab === "new" || currentDeliveryTab === "concern")
+      (currentDeliveryTab === "new" ||
+       currentDeliveryTab === "concern" ||
+       currentDeliveryTab === "ongoing")
     ) {
       const selectionLabel = document.createElement("label");
       selectionLabel.className = "helper-checkbox-item";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
+      const status = String(record.status || "").trim().toUpperCase();
       const finalAttempt = currentDeliveryTab === "concern" &&
-        String(record.status || "").trim().toUpperCase() === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
-      checkbox.disabled = finalAttempt;
-      checkbox.checked = !finalAttempt && selectedInvoiceIds.has(Number(record.id));
+        status === "DELIVERY ATTEMPT UNSUCCESSFUL (2)";
+      const blockedOngoingStatus = currentDeliveryTab === "ongoing" &&
+        status !== "IN TRANSIT" &&
+        !isReassignableOngoingStatus(status);
+
+      checkbox.disabled = finalAttempt || blockedOngoingStatus;
+      checkbox.checked =
+        !checkbox.disabled &&
+        selectedInvoiceIds.has(Number(record.id));
+
       if (finalAttempt) {
         selectedInvoiceIds.delete(Number(record.id));
         checkbox.title = "Second unsuccessful attempt is final; it cannot be scheduled again.";
+      } else if (status === "IN TRANSIT" && currentDeliveryTab === "ongoing") {
+        checkbox.title = "IN TRANSIT invoices cannot be reassigned. Change status to DEPARTED first.";
+      } else if (blockedOngoingStatus) {
+        checkbox.title = "Only SCHEDULED, READY FOR DELIVERY, DEPARTED, and ARRIVED invoices can be reassigned.";
+        selectedInvoiceIds.delete(Number(record.id));
       }
 
       checkbox.addEventListener("change", function() {
-        toggleInvoiceSelection(record.id, checkbox.checked);
+        handleInvoiceSelection(record, checkbox);
       });
 
       selectionLabel.append(
         checkbox,
-        document.createTextNode(finalAttempt ? "Final attempt — cannot be rescheduled" : "Select invoice")
+        document.createTextNode(
+          finalAttempt
+            ? "Final attempt — cannot be rescheduled"
+            : status === "IN TRANSIT"
+              ? "Cannot reassign while IN TRANSIT"
+              : blockedOngoingStatus
+                ? "Cannot reassign from this status"
+                : "Select invoice"
+        )
       );
       card.appendChild(selectionLabel);
     }
@@ -3367,21 +3471,33 @@ function getAllowedStatusCorrections(record) {
     }
 
     currentTripAction =
-      currentDeliveryTab === "concern" ? "ADD_SCHEDULE" : "NEW_TRIP";
+      currentDeliveryTab === "ongoing"
+        ? "REASSIGN"
+        : currentDeliveryTab === "concern"
+          ? "ADD_SCHEDULE"
+          : "NEW_TRIP";
 
-    const title = currentTripAction === "ADD_SCHEDULE"
-      ? "Add New Schedule"
-      : "Create New Trip";
+    const title = currentTripAction === "REASSIGN"
+      ? "Reassign Selected Invoices"
+      : currentTripAction === "ADD_SCHEDULE"
+        ? "Add New Schedule"
+        : "Create New Trip";
 
     document.getElementById("tripModalTitle").textContent = title;
 
     document.getElementById("tripModalDescription").textContent =
-      currentTripAction === "ADD_SCHEDULE"
-        ? "Schedule the selected invoices again under a new Trip ID."
-        : "Assign the selected Pending invoices to a new delivery trip.";
+      currentTripAction === "REASSIGN"
+        ? "Move the selected invoices from their current trips into one new trip. IN TRANSIT invoices must first be corrected to DEPARTED."
+        : currentTripAction === "ADD_SCHEDULE"
+          ? "Schedule the selected invoices again under a new Trip ID."
+          : "Assign the selected Pending invoices to a new delivery trip.";
 
     document.getElementById("saveTripButton").textContent =
-      currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+      currentTripAction === "REASSIGN"
+        ? "Reassign to New Trip"
+        : currentTripAction === "ADD_SCHEDULE"
+          ? "Add Schedule"
+          : "Create Trip";
 
     document.getElementById("tripDeliveryDate").value = "";
     document.getElementById("tripTruck").value = "";
@@ -3530,20 +3646,31 @@ function getAllowedStatusCorrections(record) {
       .withSuccessHandler(function(result) {
         button.disabled = false;
         button.textContent =
-          currentTripAction === "ADD_SCHEDULE" ? "Add Schedule" : "Create Trip";
+          currentTripAction === "REASSIGN"
+            ? "Reassign to New Trip"
+            : currentTripAction === "ADD_SCHEDULE"
+              ? "Add Schedule"
+              : "Create Trip";
 
         if (!result || !result.success) {
-          setTripMessage(
-            result && result.message ? result.message : "The trip could not be created.",
-            "error"
-          );
+          const errorMessage =
+            result && result.message ? result.message : "The trip could not be created.";
+          setTripMessage(errorMessage, "error");
+          if (
+            currentTripAction === "REASSIGN" &&
+            errorMessage.toUpperCase().includes("IN TRANSIT")
+          ) {
+            alert(errorMessage);
+          }
           return;
         }
 
         alert(
-          (currentTripAction === "ADD_SCHEDULE"
-            ? "New schedule added successfully."
-            : "Delivery trip created successfully.") +
+          (currentTripAction === "REASSIGN"
+            ? "Invoices reassigned to the new trip successfully."
+            : currentTripAction === "ADD_SCHEDULE"
+              ? "New schedule added successfully."
+              : "Delivery trip created successfully.") +
           "\n\nTrip ID: " + result.tripId +
           "\nInvoices: " + result.invoiceCount +
           "\n\nAudit logs have been created."
