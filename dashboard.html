@@ -1102,6 +1102,58 @@
     }
   }
 
+  /* Fit the expanded trip invoice columns to the available window.
+     This is important when the browser is snapped to half-screen. */
+  @media (max-width: 1100px) {
+    #dashboardView .trip-group-content {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
+
+    #dashboardView .trip-invoice-list {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100%;
+      table-layout: fixed;
+    }
+
+    #dashboardView .trip-invoice-list th,
+    #dashboardView .trip-invoice-list td {
+      padding: 8px 5px;
+      font-size: 11px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      box-sizing: border-box;
+    }
+
+    #dashboardView .trip-invoice-list th {
+      font-size: 9px;
+      letter-spacing: 0;
+    }
+
+    #dashboardView .trip-invoice-list th:nth-child(1),
+    #dashboardView .trip-invoice-list td:nth-child(1) { width: 17%; }
+
+    #dashboardView .trip-invoice-list th:nth-child(2),
+    #dashboardView .trip-invoice-list td:nth-child(2) { width: 16%; }
+
+    #dashboardView .trip-invoice-list th:nth-child(3),
+    #dashboardView .trip-invoice-list td:nth-child(3) { width: 25%; }
+
+    #dashboardView .trip-invoice-list th:nth-child(4),
+    #dashboardView .trip-invoice-list td:nth-child(4) { width: 12%; }
+
+    #dashboardView .trip-invoice-list th:nth-child(5),
+    #dashboardView .trip-invoice-list td:nth-child(5) { width: 17%; }
+
+    #dashboardView .trip-invoice-list th:nth-child(6),
+    #dashboardView .trip-invoice-list td:nth-child(6) { width: 13%; }
+  }
+
   /* Keep the invoice list in normal document flow at every
      viewport size. Only the browser page should scroll vertically. */
   #dashboardView #deliverySection > .delivery-card-list,
