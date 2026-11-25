@@ -2617,25 +2617,33 @@
   function renderOngoingTripGroups(records, tableBody, cardList) {
     const groups = {};
     const noTripRecords = [];
-
     records.forEach(function(record) {
       const tripId = String(record.tripId || "").trim();
-      if (!tripId) {
-        noTripRecords.push(record);
-        return;
-      }
+      if (!tripId) { noTripRecords.push(record); return; }
       if (!groups[tripId]) groups[tripId] = [];
       groups[tripId].push(record);
     });
 
-    const tripIds = Object.keys(groups).sort();
+    const table = tableBody.closest("table");
+    const headerRow = table && table.querySelector("thead tr");
+    if (headerRow) {
+      headerRow.replaceChildren();
+      const labels = [];
+      if (canCreateTrips()) labels.push("SELECT");
+      labels.push("INVOICE NUMBER", "CUSTOMER", "SALES REPRESENTATIVE", "AREA", "STATUS");
+      labels.forEach(function(labelText) {
+        const th = document.createElement("th");
+        th.textContent = labelText;
+        headerRow.appendChild(th);
+      });
+    }
 
-    tripIds.forEach(function(tripId) {
+    Object.keys(groups).sort().forEach(function(tripId) {
       const tripRecords = groups[tripId];
       const groupRow = document.createElement("tr");
       groupRow.className = "trip-table-group-row";
       const groupCell = document.createElement("td");
-      groupCell.colSpan = 12;
+      groupCell.colSpan = canCreateTrips() ? 6 : 5;
       groupCell.style.background = "#eef4fb";
       groupCell.style.padding = "10px 14px";
 
@@ -2647,21 +2655,25 @@
 
       const heading = document.createElement("div");
       heading.className = "all-trip-heading";
+      heading.style.flexDirection = "column";
+      heading.style.alignItems = "flex-start";
       const label = document.createElement("strong");
       label.className = "all-trip-id";
-      label.textContent = tripId + " — " + tripRecords.length +
-        (tripRecords.length === 1 ? " invoice" : " invoices");
-      heading.appendChild(label);
+      label.textContent = tripId + " — " + tripRecords.length + (tripRecords.length === 1 ? " invoice" : " invoices");
+
+      const drivers = Array.from(new Set(tripRecords.map(function(r) { return String(r.driver || "").trim(); }).filter(Boolean)));
+      const helpers = Array.from(new Set(tripRecords.flatMap(function(r) {
+        return (r.helperNames || []).map(function(name) { return String(name || "").trim(); }).filter(Boolean);
+      })));
+      const assignments = document.createElement("div");
+      assignments.className = "all-trip-count";
+      assignments.style.marginTop = "5px";
+      assignments.textContent = "Driver: " + (drivers.join(", ") || "-") + " • Helper(s): " + (helpers.join(", ") || "-");
+      heading.append(label, assignments);
 
       const actions = document.createElement("div");
       actions.className = "all-trip-actions";
-
-      if (!isHelperAccount()) {
-        actions.append(
-          createTripPdfButton("Download PDF", tripId, "download"),
-          createTripPdfButton("Print", tripId, "print")
-        );
-      }
+      if (!isHelperAccount()) actions.append(createTripPdfButton("Download PDF", tripId, "download"), createTripPdfButton("Print", tripId, "print"));
 
       const allReady = tripRecords.length > 0 && tripRecords.every(function(r) {
         return String(r.status || "").trim().toUpperCase() === "READY FOR DELIVERY";
@@ -2671,9 +2683,7 @@
         departButton.type = "button";
         departButton.className = "trip-depart-button";
         departButton.textContent = "DEPART TRIP";
-        departButton.addEventListener("click", function() {
-          runWorkflowAction("DEPART", null, tripId);
-        });
+        departButton.addEventListener("click", function() { runWorkflowAction("DEPART", null, tripId); });
         actions.appendChild(departButton);
       }
 
@@ -2681,10 +2691,7 @@
       tripRecords.forEach(function(record) {
         renderDesktopRow(tableBody, record);
         const invoiceRow = tableBody.lastElementChild;
-        if (invoiceRow) {
-          invoiceRow.hidden = true;
-          invoiceRows.push(invoiceRow);
-        }
+        if (invoiceRow) { invoiceRow.hidden = true; invoiceRows.push(invoiceRow); }
       });
 
       const toggle = document.createElement("button");
@@ -2699,7 +2706,6 @@
         toggle.setAttribute("aria-expanded", expand ? "true" : "false");
         toggle.setAttribute("aria-label", (expand ? "Collapse" : "Expand") + " Trip " + tripId + " invoices");
       });
-
       header.append(heading, actions, toggle);
       groupCell.appendChild(header);
       groupRow.appendChild(groupCell);
@@ -2709,15 +2715,13 @@
     if (noTripRecords.length) {
       const groupRow = document.createElement("tr");
       const groupCell = document.createElement("td");
-      groupCell.colSpan = 12;
+      groupCell.colSpan = canCreateTrips() ? 6 : 5;
       groupCell.style.background = "#f8fafc";
       groupCell.style.padding = "10px 14px";
       groupCell.innerHTML = "<strong>Unassigned / No Trip ID</strong>";
       groupRow.appendChild(groupCell);
       tableBody.appendChild(groupRow);
-      noTripRecords.forEach(function(record) {
-        renderDesktopRow(tableBody, record);
-      });
+      noTripRecords.forEach(function(record) { renderDesktopRow(tableBody, record); });
     }
   }
 
@@ -3360,17 +3364,20 @@
       row.appendChild(selectionCell);
     }
 
-    const values = [
-      record.invoiceNumber,
-      record.salesOrderNumber,
-      record.customerName,
-      record.salesRepresentative,
-      record.deliveryDate,
-      record.area,
-      record.driver,
-      (record.helperNames || []).join(", ") || "-",
-      record.truck
-    ];
+    const compactOngoing = currentDeliveryTab === "ongoing";
+    const values = compactOngoing
+      ? [record.invoiceNumber, record.customerName, record.salesRepresentative, record.area]
+      : [
+          record.invoiceNumber,
+          record.salesOrderNumber,
+          record.customerName,
+          record.salesRepresentative,
+          record.deliveryDate,
+          record.area,
+          record.driver,
+          (record.helperNames || []).join(", ") || "-",
+          record.truck
+        ];
 
     values.forEach(function(value) {
       const cell = document.createElement("td");
@@ -3421,7 +3428,15 @@
         actionCell.appendChild(assignmentButton);
       }
 
-      row.appendChild(actionCell);
+      if (compactOngoing) {
+        statusCell.appendChild(actionCell);
+        actionCell.style.display = "inline-flex";
+        actionCell.style.flexWrap = "wrap";
+        actionCell.style.alignItems = "center";
+        actionCell.style.gap = "4px";
+      } else {
+        row.appendChild(actionCell);
+      }
     }
 
     tableBody.appendChild(row);
