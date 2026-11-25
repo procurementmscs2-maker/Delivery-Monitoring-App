@@ -3403,3 +3403,16 @@ function inspectSalesAuditRoleField() {
     JSON.stringify(result.x_studio_user_role, null, 2)
   );
 }
+
+/**
+ * Return the company logo as JPEG data for embedding in trip PDFs.
+ * This runs server-side so the browser does not encounter cross-origin
+ * canvas restrictions when reading the Google Drive image.
+ */
+function getTripPdfLogoDataUrl() {
+  const logoFileId = "1RDWyPmqJ03W2pA5LQD5CPvcMB7m4ZNu5";
+  const logoBlob = DriveApp.getFileById(logoFileId).getBlob();
+  const jpegBlob = logoBlob.getAs(MimeType.JPEG);
+  const base64 = Utilities.base64Encode(jpegBlob.getBytes());
+  return "data:image/jpeg;base64," + base64;
+}
