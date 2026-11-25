@@ -2561,16 +2561,10 @@
       titleRow.appendChild(label);
 
       if (!isHelperAccount()) {
-        const printButton = document.createElement("button");
-        printButton.type = "button";
-        printButton.className = "trip-print-button";
-        printButton.textContent = "Print PDF";
-        printButton.title = "Print this trip as PDF";
-        printButton.style.marginLeft = "12px";
-        printButton.addEventListener("click", function() {
-          printTripPdf(tripId);
-        });
-        titleRow.appendChild(printButton);
+        const downloadButton = createTripPdfButton("Download PDF", tripId, "download");
+        downloadButton.style.marginLeft = "12px";
+        const printButton = createTripPdfButton("Print", tripId, "print");
+        titleRow.append(downloadButton, printButton);
       }
 
       groupCell.appendChild(titleRow);
@@ -2612,9 +2606,211 @@
     }
   }
 
-  // Placeholder until the user specifies the trip PDF contents and format.
-  function printTripPdf(tripId) {
-    alert("PDF printing for Trip " + tripId + " is not configured yet. The PDF contents and layout will be added once specified.");
+  /****************************************************
+   * TRIP PDF: LONG BOND (8.5 x 13 INCH), LANDSCAPE
+   * Download and Print share this exact PDF generator.
+   ****************************************************/
+  function createTripPdfButton(label, tripId, action) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "trip-print-button";
+    button.textContent = label;
+    button.title = label + " for Trip " + tripId;
+    button.addEventListener("click", function() {
+      generateTripPdf(tripId, action);
+    });
+    return button;
+  }
+
+  let tripPdfLibraryPromise = null;
+
+  function loadTripPdfLibrary() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+    if (tripPdfLibraryPromise) return tripPdfLibraryPromise;
+
+    tripPdfLibraryPromise = new Promise(function(resolve, reject) {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js";
+      script.onload = resolve;
+      script.onerror = function() {
+        tripPdfLibraryPromise = null;
+        reject(new Error("The PDF library could not be loaded. Check your internet connection and try again."));
+      };
+      document.head.appendChild(script);
+    });
+    return tripPdfLibraryPromise;
+  }
+
+  function getTripRecordsForPdf(tripId) {
+    const allRecords = []
+      .concat(deliveryDashboardData.newDeliveries || [])
+      .concat(deliveryDashboardData.ongoingDeliveries || [])
+      .concat(deliveryDashboardData.finishedDeliveries || [])
+      .concat(deliveryDashboardData.concernDeliveries || []);
+
+    const seen = new Set();
+    return allRecords.filter(function(record) {
+      const id = Number(record.id);
+      if (String(record.tripId || "").trim() !== String(tripId).trim()) return false;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+
+  function generateTripPdf(tripId, action) {
+    if (isHelperAccount()) {
+      alert("PDF export is not available for Helper accounts.");
+      return;
+    }
+
+    const records = getTripRecordsForPdf(tripId);
+    if (!records.length) {
+      alert("No invoice records were found for Trip " + tripId + ". Please refresh the dashboard and try again.");
+      return;
+    }
+
+    const triggerButton = document.activeElement;
+    if (triggerButton && triggerButton.tagName === "BUTTON") {
+      triggerButton.disabled = true;
+    }
+
+    loadTripPdfLibrary().then(function() {
+      const doc = buildTripPdfDocument(tripId, records);
+      if (action === "download") {
+        doc.save("MSCS-Primegoods-" + safePdfFileName(tripId) + ".pdf");
+      } else {
+        const blobUrl = URL.createObjectURL(doc.output("blob"));
+        const printWindow = window.open(blobUrl, "_blank");
+        if (!printWindow) {
+          URL.revokeObjectURL(blobUrl);
+          alert("Your browser blocked the print window. Please allow pop-ups for this site and click Print again.");
+          return;
+        }
+        printWindow.addEventListener("load", function() {
+          printWindow.focus();
+          printWindow.print();
+        });
+      }
+    }).catch(function(error) {
+      alert(error && error.message ? error.message : "Unable to create the trip PDF.");
+    }).finally(function() {
+      if (triggerButton && triggerButton.tagName === "BUTTON") {
+        triggerButton.disabled = false;
+      }
+    });
+  }
+
+  function safePdfFileName(value) {
+    return String(value || "Trip").replace(/[^a-z0-9_-]+/gi, "-");
+  }
+
+  function buildTripPdfDocument(tripId, records) {
+    const jsPDF = window.jspdf.jsPDF;
+    // 13 x 8.5 inches expressed in points, landscape.
+    const pageWidth = 936;
+    const pageHeight = 612;
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: [pageWidth, pageHeight],
+      compress: true
+    });
+
+    const first = records[0] || {};
+    const helpers = Array.from(new Set(records.reduce(function(all, record) {
+      return all.concat(record.helperNames || []);
+    }, []).filter(Boolean)));
+    const truck = first.truck || "";
+    const driver = first.driver || "";
+    const helperText = helpers.join(", ");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("MSCS Primegoods, Inc.", 28, 34);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Trip ID: " + (tripId || ""), 28, 60);
+    doc.text("Truck No.: " + truck, 28, 78);
+    doc.text("Driver: " + driver, 330, 60);
+    doc.text("Helper/s: " + helperText, 330, 78);
+
+    const columns = [
+      { title: "Sales Invoice", width: 78 },
+      { title: "Customer Name", width: 112 },
+      { title: "Terms", width: 45 },
+      { title: "Sales Representative", width: 95 },
+      { title: "Amount", width: 66 },
+      { title: "Customer's Signature", width: 150 },
+      { title: "CR #", width: 45 },
+      { title: "Bank & Check #", width: 98 },
+      { title: "CWT", width: 45 },
+      { title: "Received By", width: 98 }
+    ];
+
+    const tableX = 28;
+    const tableWidth = columns.reduce(function(total, col) {
+      return total + col.width;
+    }, 0);
+    const headerY = 112;
+    const headerHeight = 34;
+    const rowHeight = 62;
+
+    function drawHeader(y) {
+      let x = tableX;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      columns.forEach(function(column) {
+        doc.setFillColor(235, 240, 247);
+        doc.setDrawColor(80, 90, 105);
+        doc.rect(x, y, column.width, headerHeight, "FD");
+        const labelLines = doc.splitTextToSize(column.title, column.width - 8);
+        doc.text(labelLines, x + 4, y + (labelLines.length > 1 ? 13 : 20));
+        x += column.width;
+      });
+    }
+
+    let y = headerY;
+    drawHeader(y);
+    y += headerHeight;
+
+    records.forEach(function(record) {
+      if (y + rowHeight > pageHeight - 28) {
+        doc.addPage([pageWidth, pageHeight], "landscape");
+        y = 34;
+        drawHeader(y);
+        y += headerHeight;
+      }
+
+      const amount = record.amount ?? record.invoiceAmount ?? record.totalAmount ?? record.amountTotal ?? "";
+      const values = [
+        record.invoiceNumber || "",
+        record.customerName || "",
+        "",
+        record.salesRepresentative || "",
+        amount === "" ? "" : String(amount),
+        "",
+        "",
+        "",
+        "",
+        ""
+      ];
+
+      let x = tableX;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      columns.forEach(function(column, index) {
+        doc.setDrawColor(80, 90, 105);
+        doc.rect(x, y, column.width, rowHeight);
+        const textLines = doc.splitTextToSize(String(values[index] || ""), column.width - 8);
+        doc.text(textLines.slice(0, 4), x + 4, y + 13);
+        x += column.width;
+      });
+      y += rowHeight;
+    });
+
+    return doc;
   }
 
   function createTripGroup(tripId, records, index, noTripId) {
@@ -2633,16 +2829,13 @@
     title.className = "trip-group-title";
     title.textContent = tripId;
 
-    const printButton = document.createElement("button");
-    printButton.type = "button";
-    printButton.className = "trip-print-button";
-    printButton.textContent = "Print PDF";
-    printButton.title = "Print this trip as PDF";
-    printButton.addEventListener("click", function() {
-      printTripPdf(tripId);
-    });
-
-    titleRow.append(title, printButton);
+    titleRow.appendChild(title);
+    if (!isHelperAccount()) {
+      titleRow.append(
+        createTripPdfButton("Download PDF", tripId, "download"),
+        createTripPdfButton("Print", tripId, "print")
+      );
+    }
 
     const subtitle = document.createElement("div");
     subtitle.className = "trip-group-subtitle";
