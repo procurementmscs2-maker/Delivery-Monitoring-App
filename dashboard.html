@@ -2622,77 +2622,6 @@
     return button;
   }
 
-  let tripPdfLibraryPromise = null;
-
-  function loadTripPdfLibrary() {
-    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
-    if (tripPdfLibraryPromise) return tripPdfLibraryPromise;
-
-    // Try more than one trusted CDN. Some office networks or browsers block
-    // individual CDN domains even when the internet connection is working.
-    const sources = [
-      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js",
-      "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js",
-      "https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"
-    ];
-
-    tripPdfLibraryPromise = new Promise(function(resolve, reject) {
-      function trySource(index) {
-        if (window.jspdf && window.jspdf.jsPDF) {
-          resolve();
-          return;
-        }
-        if (index >= sources.length) {
-          tripPdfLibraryPromise = null;
-          reject(new Error(
-            "Unable to load the PDF component from the available sources. " +
-            "Your browser, network, or Apps Script page may be blocking external libraries. " +
-            "Please try another network or contact the app administrator."
-          ));
-          return;
-        }
-
-        const script = document.createElement("script");
-        script.src = sources[index];
-        script.async = true;
-        script.onload = function() {
-          if (window.jspdf && window.jspdf.jsPDF) {
-            resolve();
-          } else {
-            script.remove();
-            trySource(index + 1);
-          }
-        };
-        script.onerror = function() {
-          script.remove();
-          trySource(index + 1);
-        };
-        document.head.appendChild(script);
-      }
-
-      trySource(0);
-    });
-
-    return tripPdfLibraryPromise;
-  }
-
-  function getTripRecordsForPdf(tripId) {
-    const allRecords = []
-      .concat(deliveryDashboardData.newDeliveries || [])
-      .concat(deliveryDashboardData.ongoingDeliveries || [])
-      .concat(deliveryDashboardData.finishedDeliveries || [])
-      .concat(deliveryDashboardData.concernDeliveries || []);
-
-    const seen = new Set();
-    return allRecords.filter(function(record) {
-      const id = Number(record.id);
-      if (String(record.tripId || "").trim() !== String(tripId).trim()) return false;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-  }
-
   function generateTripPdf(tripId, action) {
     if (isHelperAccount()) {
       alert("PDF export is not available for Helper accounts.");
@@ -2705,72 +2634,50 @@
       return;
     }
 
-    const triggerButton = document.activeElement;
-    if (triggerButton && triggerButton.tagName === "BUTTON") {
-      triggerButton.disabled = true;
-    }
+    try {
+      const pdfBlob = buildTripPdfBlob(tripId, records);
+      const blobUrl = URL.createObjectURL(pdfBlob);
 
-    loadTripPdfLibrary().then(function() {
-      const doc = buildTripPdfDocument(tripId, records);
       if (action === "download") {
-        doc.save("MSCS-Primegoods-" + safePdfFileName(tripId) + ".pdf");
-      } else {
-        const blobUrl = URL.createObjectURL(doc.output("blob"));
-        const printWindow = window.open(blobUrl, "_blank");
-        if (!printWindow) {
-          URL.revokeObjectURL(blobUrl);
-          alert("Your browser blocked the print window. Please allow pop-ups for this site and click Print again.");
-          return;
-        }
-        printWindow.addEventListener("load", function() {
-          printWindow.focus();
-          printWindow.print();
-        });
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = "MSCS-Primegoods-" + safePdfFileName(tripId) + ".pdf";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1500);
+        return;
       }
-    }).catch(function(error) {
+
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) {
+        URL.revokeObjectURL(blobUrl);
+        alert("Your browser blocked the print window. Please allow pop-ups for this site and click Print again.");
+        return;
+      }
+      printWindow.addEventListener("load", function() {
+        printWindow.focus();
+        printWindow.print();
+      });
+    } catch (error) {
       alert(error && error.message ? error.message : "Unable to create the trip PDF.");
-    }).finally(function() {
-      if (triggerButton && triggerButton.tagName === "BUTTON") {
-        triggerButton.disabled = false;
-      }
-    });
+    }
   }
 
   function safePdfFileName(value) {
     return String(value || "Trip").replace(/[^a-z0-9_-]+/gi, "-");
   }
 
-  function buildTripPdfDocument(tripId, records) {
-    const jsPDF = window.jspdf.jsPDF;
-    // 13 x 8.5 inches expressed in points, landscape.
-    const pageWidth = 936;
-    const pageHeight = 612;
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: [pageWidth, pageHeight],
-      compress: true
-    });
-
+  // Creates a valid PDF directly in the browser using standard PDF objects.
+  // No external CDN, library, or network request is required.
+  function buildTripPdfBlob(tripId, records) {
+    const pageWidth = 936;  // 13 inches at 72 points per inch
+    const pageHeight = 612; // 8.5 inches at 72 points per inch
+    const margin = 28;
     const first = records[0] || {};
     const helpers = Array.from(new Set(records.reduce(function(all, record) {
       return all.concat(record.helperNames || []);
     }, []).filter(Boolean)));
-    const truck = first.truck || "";
-    const driver = first.driver || "";
-    const helperText = helpers.join(", ");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("MSCS Primegoods, Inc.", 28, 34);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text("Trip ID: " + (tripId || ""), 28, 60);
-    doc.text("Truck No.: " + truck, 28, 78);
-    doc.text("Driver: " + driver, 330, 60);
-    doc.text("Helper/s: " + helperText, 330, 78);
-
     const columns = [
       { title: "Sales Invoice", width: 78 },
       { title: "Customer Name", width: 112 },
@@ -2784,68 +2691,145 @@
       { title: "Received By", width: 98 }
     ];
 
-    const tableX = 28;
-    const tableWidth = columns.reduce(function(total, col) {
-      return total + col.width;
-    }, 0);
-    const headerY = 112;
-    const headerHeight = 34;
-    const rowHeight = 62;
-
-    function drawHeader(y) {
-      let x = tableX;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      columns.forEach(function(column) {
-        doc.setFillColor(235, 240, 247);
-        doc.setDrawColor(80, 90, 105);
-        doc.rect(x, y, column.width, headerHeight, "FD");
-        const labelLines = doc.splitTextToSize(column.title, column.width - 8);
-        doc.text(labelLines, x + 4, y + (labelLines.length > 1 ? 13 : 20));
-        x += column.width;
-      });
+    function pdfSafe(value) {
+      return String(value == null ? "" : value)
+        .replace(/[\\\\()]/g, "\\\\$&")
+        .replace(/[^\\x20-\\x7E]/g, "?");
     }
 
-    let y = headerY;
-    drawHeader(y);
-    y += headerHeight;
+    function wrapText(value, maxChars) {
+      const words = String(value == null ? "" : value).split(/\\s+/);
+      const lines = [];
+      let line = "";
+      words.forEach(function(word) {
+        if (!word) return;
+        while (word.length > maxChars) {
+          if (line) { lines.push(line); line = ""; }
+          lines.push(word.slice(0, maxChars));
+          word = word.slice(maxChars);
+        }
+        const candidate = line ? line + " " + word : word;
+        if (candidate.length > maxChars && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = candidate;
+        }
+      });
+      if (line) lines.push(line);
+      return lines.length ? lines : [""];
+    }
 
-    records.forEach(function(record) {
-      if (y + rowHeight > pageHeight - 28) {
-        doc.addPage([pageWidth, pageHeight], "landscape");
-        y = 34;
-        drawHeader(y);
-        y += headerHeight;
+    function textCommand(text, x, y, size, bold) {
+      return "BT /F" + (bold ? "2" : "1") + " " + size +
+        " Tf 1 0 0 1 " + x + " " + y + " Tm (" +
+        pdfSafe(text) + ") Tj ET\n";
+    }
+
+    function rectCommand(x, y, width, height, fill) {
+      if (fill) {
+        return "0.92 0.94 0.97 rg " + x + " " + y + " " + width + " " + height + " re f\n" +
+          "0.30 0.34 0.40 RG 0.6 w " + x + " " + y + " " + width + " " + height + " re S\n";
+      }
+      return "0.30 0.34 0.40 RG 0.6 w " + x + " " + y + " " + width + " " + height + " re S\n";
+    }
+
+    function makePage(isFirstPage, pageRecords) {
+      let stream = "";
+      if (isFirstPage) {
+        stream += textCommand("MSCS Primegoods, Inc.", margin, 574, 16, true);
+        stream += textCommand("Trip ID: " + tripId, margin, 550, 10, false);
+        stream += textCommand("Truck No.: " + (first.truck || ""), margin, 532, 10, false);
+        stream += textCommand("Driver: " + (first.driver || ""), 330, 550, 10, false);
+        stream += textCommand("Helper/s: " + helpers.join(", "), 330, 532, 10, false);
+      } else {
+        stream += textCommand("MSCS Primegoods, Inc. - Trip ID: " + tripId, margin, 574, 11, true);
       }
 
-      const amount = record.amount ?? record.invoiceAmount ?? record.totalAmount ?? record.amountTotal ?? "";
-      const values = [
-        record.invoiceNumber || "",
-        record.customerName || "",
-        "",
-        record.salesRepresentative || "",
-        amount === "" ? "" : String(amount),
-        "",
-        "",
-        "",
-        "",
-        ""
-      ];
-
-      let x = tableX;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      columns.forEach(function(column, index) {
-        doc.setDrawColor(80, 90, 105);
-        doc.rect(x, y, column.width, rowHeight);
-        const textLines = doc.splitTextToSize(String(values[index] || ""), column.width - 8);
-        doc.text(textLines.slice(0, 4), x + 4, y + 13);
+      let yTop = isFirstPage ? 500 : 548;
+      const headerHeight = 34;
+      const rowHeight = 54;
+      let x = margin;
+      columns.forEach(function(column) {
+        stream += rectCommand(x, yTop - headerHeight, column.width, headerHeight, true);
+        const labelLines = wrapText(column.title, Math.max(6, Math.floor((column.width - 8) / 4.2)));
+        labelLines.slice(0, 3).forEach(function(line, index) {
+          stream += textCommand(line, x + 4, yTop - 14 - index * 9, 7, true);
+        });
         x += column.width;
       });
-      y += rowHeight;
-    });
 
-    return doc;
+      let y = yTop - headerHeight;
+      pageRecords.forEach(function(record) {
+        const amount = record.amount ?? record.invoiceAmount ?? record.totalAmount ?? record.amountTotal ?? "";
+        const values = [
+          record.invoiceNumber || "",
+          record.customerName || "",
+          "",
+          record.salesRepresentative || "",
+          amount === "" ? "" : String(amount),
+          "", "", "", "", ""
+        ];
+        x = margin;
+        columns.forEach(function(column, index) {
+          stream += rectCommand(x, y - rowHeight, column.width, rowHeight, false);
+          const maxChars = Math.max(5, Math.floor((column.width - 8) / 4.1));
+          const lines = wrapText(values[index], maxChars);
+          lines.slice(0, 5).forEach(function(line, lineIndex) {
+            stream += textCommand(line, x + 4, y - 13 - lineIndex * 9, 7, false);
+          });
+          x += column.width;
+        });
+        y -= rowHeight;
+      });
+      return stream;
+    }
+
+    const rowsPerFirstPage = 6;
+    const rowsPerOtherPage = 8;
+    const pageStreams = [];
+    let offset = 0;
+    pageStreams.push(makePage(true, records.slice(0, rowsPerFirstPage)));
+    offset += rowsPerFirstPage;
+    while (offset < records.length) {
+      pageStreams.push(makePage(false, records.slice(offset, offset + rowsPerOtherPage)));
+      offset += rowsPerOtherPage;
+    }
+
+    const objects = [];
+    objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+    objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+    objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+    const pageRefs = [];
+    pageStreams.forEach(function(stream, index) {
+      const pageObject = 5 + index * 2;
+      const streamObject = pageObject + 1;
+      pageRefs.push(pageObject + " 0 R");
+      objects[pageObject] =
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight +
+        "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents " +
+        streamObject + " 0 R >>";
+      objects[streamObject] =
+        "<< /Length " + stream.length + " >>\nstream\n" + stream + "endstream";
+    });
+    objects[2] = "<< /Type /Pages /Kids [" + pageRefs.join(" ") +
+      "] /Count " + pageStreams.length + " >>";
+
+    let pdf = "%PDF-1.4\n";
+    const offsets = [0];
+    for (let i = 1; i < objects.length; i++) {
+      offsets[i] = pdf.length;
+      pdf += i + " 0 obj\n" + objects[i] + "\nendobj\n";
+    }
+    const xrefOffset = pdf.length;
+    pdf += "xref\n0 " + objects.length + "\n";
+    pdf += "0000000000 65535 f \n";
+    for (let i = 1; i < objects.length; i++) {
+      pdf += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+    }
+    pdf += "trailer\n<< /Size " + objects.length + " /Root 1 0 R >>\n";
+    pdf += "startxref\n" + xrefOffset + "\n%%EOF";
+    return new Blob([pdf], { type: "application/pdf" });
   }
 
   function createTripGroup(tripId, records, index, noTripId) {
