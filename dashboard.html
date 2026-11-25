@@ -2552,10 +2552,28 @@
       groupCell.style.background = "#eef4fb";
       groupCell.style.padding = "10px 14px";
 
+      const titleRow = document.createElement("div");
+      titleRow.className = "trip-group-title-row";
+
       const label = document.createElement("strong");
       label.textContent = tripId + " — " + tripRecords.length +
         (tripRecords.length === 1 ? " invoice" : " invoices");
-      groupCell.appendChild(label);
+      titleRow.appendChild(label);
+
+      if (!isHelperAccount()) {
+        const printButton = document.createElement("button");
+        printButton.type = "button";
+        printButton.className = "trip-print-button";
+        printButton.textContent = "Print PDF";
+        printButton.title = "Print this trip as PDF";
+        printButton.style.marginLeft = "12px";
+        printButton.addEventListener("click", function() {
+          printTripPdf(tripId);
+        });
+        titleRow.appendChild(printButton);
+      }
+
+      groupCell.appendChild(titleRow);
 
       const allReady = tripRecords.length > 0 && tripRecords.every(function(r) {
         return String(r.status || "").trim().toUpperCase() === "READY FOR DELIVERY";
