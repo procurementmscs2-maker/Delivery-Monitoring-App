@@ -2761,6 +2761,7 @@
         stream += textCommand("MSCS Primegoods, Inc.", margin, 574, 16, true);
         stream += textCommand("Trip ID: " + tripId, margin, 550, 10, false);
         stream += textCommand("Truck No.: " + (first.truck || ""), margin, 532, 10, false);
+        stream += textCommand("Delivery Date: " + (first.deliveryDate || ""), margin, 514, 10, false);
         stream += textCommand("Driver: " + (first.driver || ""), 330, 550, 10, false);
         stream += textCommand("Helper/s: " + helpers.join(", "), 330, 532, 10, false);
       } else {
