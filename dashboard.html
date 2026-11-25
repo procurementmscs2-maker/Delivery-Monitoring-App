@@ -101,6 +101,23 @@
     margin-bottom: 14px;
     overflow: hidden;
   }
+  .all-trips-list { margin-top:16px; }
+  .all-trip-card { background:#fff; border:1px solid #e2e8f0; border-radius:11px; margin-bottom:11px; overflow:hidden; }
+  .all-trip-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:13px 15px; background:#f8fafc; }
+  .all-trip-heading { display:flex; align-items:center; gap:11px; min-width:0; }
+  .all-trip-toggle { border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:7px; width:32px; height:32px; flex:0 0 32px; cursor:pointer; font-size:17px; line-height:1; }
+  .all-trip-id { font-weight:750; color:#1e293b; overflow-wrap:anywhere; }
+  .all-trip-count { color:#64748b; font-size:12px; margin-top:3px; }
+  .all-trip-actions { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+  .all-trip-content { padding:12px 14px; }
+  .all-trip-content[hidden] { display:none; }
+  .all-trip-meta { display:flex; flex-wrap:wrap; gap:7px 18px; color:#475569; font-size:12px; margin-bottom:11px; }
+  .all-trip-meta strong { color:#1e293b; }
+  .all-trip-invoices { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .all-trip-invoices th,.all-trip-invoices td { text-align:left; padding:9px 8px; border-bottom:1px solid #e2e8f0; font-size:12px; overflow-wrap:anywhere; }
+  .all-trip-invoices th { color:#64748b; background:#f8fafc; font-size:10px; }
+  .all-trip-invoices tr:last-child td { border-bottom:0; }
+  @media(max-width:650px) { .all-trip-header { align-items:flex-start; } .all-trip-actions { width:100%; padding-left:43px; } .all-trip-invoices th,.all-trip-invoices td { padding:7px 5px; font-size:10px; } }
 
   .trip-group-header {
     display: flex;
@@ -1385,6 +1402,7 @@
     <!-- MAIN NAVIGATION -->
     <div class="audit-navigation">
       <button type="button" class="delivery-tab active" id="recordsMainTab" onclick="switchMainView('records')">Delivery Records</button>
+      <button type="button" class="delivery-tab" id="allTripsMainTab" onclick="switchMainView('allTrips')">ALL TRIP <span class="tab-count" id="allTripsCount">0</span></button>
       <button type="button" class="delivery-tab" id="allInvoicesMainTab" onclick="switchMainView('allInvoices')">All Invoices</button>
       <button type="button" class="delivery-tab" id="pullOutMainTab" onclick="switchMainView('pullOut')">Pull-Out</button>
       <button type="button" class="delivery-tab" id="toFollowMainTab" onclick="switchMainView('toFollow')">To Follow</button>
@@ -1392,6 +1410,14 @@
     </div>
 
     <!-- EMPTY PLACEHOLDER SECTIONS: FUNCTIONS TO BE DEFINED LATER -->
+    <section id="allTripsSection" class="delivery-section" style="display:none;">
+      <div class="delivery-heading">
+        <div><p class="eyebrow">TRIP HISTORY</p><h3>ALL TRIP</h3><p class="delivery-count" id="allTripsDescription">All trips, including finished trips</p></div>
+        <button type="button" class="refresh-button" onclick="loadDeliveryData()">↻ Refresh</button>
+      </div>
+      <div id="allTripsList" class="all-trips-list"><div class="empty-trip-state">Loading trip history...</div></div>
+    </section>
+
     <section id="allInvoicesSection" class="blank-main-section" style="display:none;">
       <div class="blank-subtabs">
         <button type="button" class="delivery-tab active" id="allInvoicesDeliveryTab" onclick="switchAllInvoicesSubTab('delivery')">Delivery</button>
@@ -2194,13 +2220,13 @@
       document.getElementById("selectionHeader").style.display = "none";
 
       // Helpers only see Delivery Records and Audit Logs in the main navigation.
-      ["allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
+      ["allTripsMainTab", "allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
         const tab = document.getElementById(id);
         if (tab) tab.style.display = "none";
       });
     } else {
       // Restore all tabs for Admin, Manager, and Encoder accounts.
-      ["allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
+      ["allTripsMainTab", "allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
         const tab = document.getElementById(id);
         if (tab) tab.style.display = "";
       });
@@ -2223,6 +2249,7 @@
 
     const sections = {
       records: document.getElementById("deliverySection"),
+      allTrips: document.getElementById("allTripsSection"),
       audit: document.getElementById("auditLogsSection"),
       allInvoices: document.getElementById("allInvoicesSection"),
       pullOut: document.getElementById("pullOutSection"),
@@ -2230,6 +2257,7 @@
     };
     const buttons = {
       records: document.getElementById("recordsMainTab"),
+      allTrips: document.getElementById("allTripsMainTab"),
       audit: document.getElementById("auditMainTab"),
       allInvoices: document.getElementById("allInvoicesMainTab"),
       pullOut: document.getElementById("pullOutMainTab"),
@@ -2248,6 +2276,7 @@
     });
 
     if (view === "audit") loadAuditLogs();
+    if (view === "allTrips") renderAllTrips();
   }
 
   function switchAllInvoicesSubTab(tab) {
@@ -2319,6 +2348,7 @@
         selectedInvoiceIds.clear();
         updateSelectionToolbar();
         renderDeliveryTable();
+        renderAllTrips();
       })
       .withFailureHandler(function(error) {
         button.disabled = false;
@@ -2522,6 +2552,60 @@
     });
   }
 
+
+  /****************************************************
+   * ALL TRIP HISTORY
+   * Includes all delivery categories returned from Odoo.
+   ****************************************************/
+  function renderAllTrips() {
+    const list = document.getElementById("allTripsList");
+    if (!list || isHelperAccount()) return;
+    const groups = new Map();
+    getVisibleDeliveryRecords().forEach(function(record) {
+      const tripId = String(record && record.tripId || "").trim();
+      if (!tripId) return;
+      if (!groups.has(tripId)) groups.set(tripId, []);
+      groups.get(tripId).push(record);
+    });
+    const tripIds = Array.from(groups.keys()).sort(function(a,b) { return b.localeCompare(a, undefined, {numeric:true,sensitivity:"base"}); });
+    const count = document.getElementById("allTripsCount");
+    if (count) count.textContent = String(tripIds.length);
+    const description = document.getElementById("allTripsDescription");
+    if (description) description.textContent = tripIds.length + (tripIds.length === 1 ? " trip recorded" : " trips recorded") + " • Includes ongoing and finished trips";
+    list.replaceChildren();
+    if (!tripIds.length) {
+      const empty = document.createElement("div"); empty.className = "empty-trip-state";
+      empty.textContent = "No trips found in the delivery records."; list.appendChild(empty); return;
+    }
+    tripIds.forEach(function(tripId) {
+      const records = groups.get(tripId).slice().sort(function(a,b) { return String(a.invoiceNumber || "").localeCompare(String(b.invoiceNumber || ""),undefined,{numeric:true}); });
+      const card = document.createElement("article"); card.className = "all-trip-card";
+      const header = document.createElement("div"); header.className = "all-trip-header";
+      const heading = document.createElement("div"); heading.className = "all-trip-heading";
+      const content = document.createElement("div"); content.className = "all-trip-content"; content.hidden = true;
+      const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "all-trip-toggle"; toggle.textContent = "⌄";
+      toggle.setAttribute("aria-label","Expand Trip "+tripId); toggle.setAttribute("aria-expanded","false");
+      toggle.addEventListener("click",function(){ const expand=content.hidden; content.hidden=!expand; toggle.textContent=expand?"⌃":"⌄"; toggle.setAttribute("aria-expanded",expand?"true":"false"); toggle.setAttribute("aria-label",(expand?"Collapse":"Expand")+" Trip "+tripId); });
+      const titleWrap = document.createElement("div");
+      const title = document.createElement("div"); title.className = "all-trip-id"; title.textContent = tripId;
+      const countText = document.createElement("div"); countText.className = "all-trip-count"; countText.textContent = records.length+(records.length===1?" invoice":" invoices");
+      titleWrap.append(title,countText); heading.append(toggle,titleWrap);
+      const actions = document.createElement("div"); actions.className = "all-trip-actions";
+      actions.append(createTripPdfButton("Download PDF",tripId,"download"),createTripPdfButton("Print",tripId,"print"));
+      header.append(heading,actions);
+      const meta = document.createElement("div"); meta.className = "all-trip-meta";
+      function uniqueValues(key,helperList){ const values=records.map(function(record){return helperList?(record.helperNames||[]).join(", "):record[key];}).filter(Boolean); return Array.from(new Set(values)).join(", ")||"—"; }
+      [["Delivery Date",uniqueValues("deliveryDate")],["Truck",uniqueValues("truck")],["Driver",uniqueValues("driver")],["Helper/s",uniqueValues("",true)]].forEach(function(item){ const span=document.createElement("span"); const strong=document.createElement("strong"); strong.textContent=item[0]+": "; span.append(strong,document.createTextNode(item[1])); meta.appendChild(span); });
+      content.appendChild(meta);
+      const table=document.createElement("table"); table.className="all-trip-invoices";
+      const thead=document.createElement("thead"); const headRow=document.createElement("tr");
+      ["INVOICE","SALES ORDER","CUSTOMER","AREA","STATUS"].forEach(function(label){const th=document.createElement("th");th.textContent=label;headRow.appendChild(th);});
+      thead.appendChild(headRow);table.appendChild(thead);
+      const tbody=document.createElement("tbody");
+      records.forEach(function(record){const row=document.createElement("tr");[record.invoiceNumber,record.salesOrderNumber,record.customerName,record.area,record.status].forEach(function(value){const cell=document.createElement("td");cell.textContent=value||"—";row.appendChild(cell);});tbody.appendChild(row);});
+      table.appendChild(tbody);content.appendChild(table);card.append(header,content);list.appendChild(card);
+    });
+  }
 
   /****************************************************
    * ONGOING TRIP GROUPING
