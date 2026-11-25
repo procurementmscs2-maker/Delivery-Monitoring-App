@@ -105,7 +105,9 @@
   .all-trip-card { background:#fff; border:1px solid #e2e8f0; border-radius:11px; margin-bottom:11px; overflow:hidden; }
   .all-trip-header { display:flex; align-items:center; gap:18px; padding:13px 15px; background:#f8fafc; }
   .all-trip-heading { display:flex; align-items:center; min-width:0; flex:1 1 auto; }
-  .all-trip-toggle { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; border-radius:50%; background:#fff; color:#475569; width:32px; height:32px; flex:0 0 32px; cursor:pointer; font-size:19px; line-height:1; padding:0 0 3px; margin-left:0; transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease; }
+  .all-trip-toggle { position:relative; display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; border-radius:50%; background:#fff; color:#475569; width:32px; height:32px; flex:0 0 32px; cursor:pointer; padding:0; margin-left:0; transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease; }
+  .all-trip-toggle::before { content:""; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-2px) rotate(45deg); transition:transform .18s ease; }
+  .all-trip-toggle.is-open::before { transform:translateY(2px) rotate(225deg); }
   .all-trip-toggle:hover { color:#1d4ed8; background:#eff6ff; border-color:#93c5fd; box-shadow:0 1px 3px rgba(15,23,42,.10); }
   .all-trip-id { font-weight:750; color:#1e293b; overflow-wrap:anywhere; }
   .all-trip-count { color:#64748b; font-size:12px; margin-top:3px; }
@@ -2584,9 +2586,9 @@
       const header = document.createElement("div"); header.className = "all-trip-header";
       const heading = document.createElement("div"); heading.className = "all-trip-heading";
       const content = document.createElement("div"); content.className = "all-trip-content"; content.hidden = true;
-      const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "all-trip-toggle"; toggle.textContent = "⌄";
+      const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "all-trip-toggle";
       toggle.setAttribute("aria-label","Expand Trip "+tripId); toggle.setAttribute("aria-expanded","false");
-      toggle.addEventListener("click",function(){ const expand=content.hidden; content.hidden=!expand; toggle.textContent=expand?"⌃":"⌄"; toggle.setAttribute("aria-expanded",expand?"true":"false"); toggle.setAttribute("aria-label",(expand?"Collapse":"Expand")+" Trip "+tripId); });
+      toggle.addEventListener("click",function(){ const expand=content.hidden; content.hidden=!expand; toggle.classList.toggle("is-open",expand); toggle.setAttribute("aria-expanded",expand?"true":"false"); toggle.setAttribute("aria-label",(expand?"Collapse":"Expand")+" Trip "+tripId); });
       const titleWrap = document.createElement("div");
       const title = document.createElement("div"); title.className = "all-trip-id"; title.textContent = tripId;
       const countText = document.createElement("div"); countText.className = "all-trip-count"; countText.textContent = records.length+(records.length===1?" invoice":" invoices");
