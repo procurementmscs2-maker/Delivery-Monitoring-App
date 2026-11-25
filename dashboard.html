@@ -925,7 +925,7 @@
     font-size: clamp(9px, 0.72vw + 3px, 13px);
   }
 
-  /* Main navigation bar and its delivery-category sub-navigation. */
+  /* Main navigation: pill container with a smoothly sliding active indicator. */
   #dashboardView .audit-navigation {
     display: flex;
     align-items: center;
@@ -935,24 +935,48 @@
     padding: 6px;
     background: #eaf0f8;
     border: 1px solid #dbe3ef;
-    border-radius: 12px;
+    border-radius: 999px;
+    position: relative;
+    isolation: isolate;
+  }
+
+  #dashboardView .audit-navigation::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: var(--main-tab-indicator-x, 6px);
+    top: var(--main-tab-indicator-y, 6px);
+    width: var(--main-tab-indicator-width, 0px);
+    height: var(--main-tab-indicator-height, 0px);
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+    transition: left .32s cubic-bezier(.22,.61,.36,1), width .32s cubic-bezier(.22,.61,.36,1), top .32s ease, height .32s ease;
+    pointer-events: none;
   }
 
   #dashboardView .audit-navigation .delivery-tab {
     border: 0;
-    border-radius: 8px;
+    border-radius: 999px;
     padding: 11px 18px;
     background: transparent;
     color: #475569;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .035em;
+    position: relative;
+    z-index: 1;
+    transition: color .22s ease;
   }
 
   #dashboardView .audit-navigation .delivery-tab.active {
-    background: #fff;
+    background: transparent;
     color: #1d4ed8;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+    box-shadow: none;
+  }
+
+  #dashboardView .audit-navigation .tab-count {
+    transition: background .22s ease, color .22s ease;
   }
 
   #dashboardView #deliverySection > .delivery-tabs {
@@ -2251,6 +2275,24 @@
   }
 
 
+  function updateMainTabIndicator(activeButton) {
+    const navigation = document.querySelector("#dashboardView .audit-navigation");
+    if (!navigation || !activeButton || activeButton.offsetParent === null) return;
+
+    const navRect = navigation.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+
+    navigation.style.setProperty("--main-tab-indicator-x", (buttonRect.left - navRect.left) + "px");
+    navigation.style.setProperty("--main-tab-indicator-y", (buttonRect.top - navRect.top) + "px");
+    navigation.style.setProperty("--main-tab-indicator-width", buttonRect.width + "px");
+    navigation.style.setProperty("--main-tab-indicator-height", buttonRect.height + "px");
+  }
+
+  window.addEventListener("resize", function() {
+    const activeButton = document.querySelector("#dashboardView .audit-navigation .delivery-tab.active");
+    updateMainTabIndicator(activeButton);
+  });
+
   /****************************************************
    * MAIN NAVIGATION
    ****************************************************/
@@ -2288,6 +2330,8 @@
       }
       buttons[key].classList.toggle("active", active);
     });
+
+    updateMainTabIndicator(buttons[view]);
 
     if (view === "audit") loadAuditLogs();
     if (view === "allTrips") renderAllTrips();
