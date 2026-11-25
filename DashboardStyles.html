@@ -1051,7 +1051,20 @@
   .delivery-table.ongoing-compact-table {
     min-width: 0;
     width: 100%;
-    table-layout: auto;
+    table-layout: fixed;
+  }
+  /* Keep status and action columns consistent so the edit icons align. */
+  .delivery-table.ongoing-compact-table td:nth-last-child(2) {
+    width: 175px;
+  }
+  .delivery-table.ongoing-compact-table td:last-child {
+    width: 48px;
+    text-align: right;
+    padding-right: 10px;
+    border-bottom: 0;
+  }
+  .delivery-table.ongoing-compact-table td:last-child .status-edit-button.icon-only {
+    margin-left: auto;
   }
   .delivery-table.ongoing-compact-table th,
   .delivery-table.ongoing-compact-table td {
