@@ -855,6 +855,24 @@
   }
   #dashboardView .blank-subpanel { min-height: 0; }
 
+  /* Keep all main tabs in one horizontal row. On narrow screens,
+     allow horizontal scrolling rather than wrapping into vertical rows. */
+  #dashboardView .audit-navigation {
+    flex-wrap: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  #dashboardView .audit-navigation .delivery-tab {
+    flex: 1 1 0;
+    min-width: max-content;
+    white-space: nowrap;
+    text-align: center;
+    padding: clamp(7px, 0.8vw, 11px) clamp(8px, 1.15vw, 18px);
+    font-size: clamp(9px, 0.72vw + 3px, 13px);
+  }
+
   /* Main navigation bar and its delivery-category sub-navigation. */
   #dashboardView .audit-navigation {
     display: flex;
