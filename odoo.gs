@@ -3411,8 +3411,35 @@ function inspectSalesAuditRoleField() {
  */
 function getTripPdfLogoDataUrl() {
   const logoFileId = "1RDWyPmqJ03W2pA5LQD5CPvcMB7m4ZNu5";
-  const logoBlob = DriveApp.getFileById(logoFileId).getBlob();
-  const jpegBlob = logoBlob.getAs(MimeType.JPEG);
-  const base64 = Utilities.base64Encode(jpegBlob.getBytes());
-  return "data:image/jpeg;base64," + base64;
+  const urls = [
+    "https://drive.google.com/thumbnail?id=" + logoFileId + "&sz=w500",
+    "https://drive.google.com/uc?export=download&id=" + logoFileId
+  ];
+
+  let lastError = "";
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      const response = UrlFetchApp.fetch(urls[i], {
+        followRedirects: true,
+        muteHttpExceptions: true
+      });
+      const status = response.getResponseCode();
+      const blob = response.getBlob();
+      const contentType = String(blob.getContentType() || "").toLowerCase();
+
+      if (status >= 200 && status < 300 && contentType.indexOf("image/") === 0) {
+        const jpegBlob = blob.getAs(MimeType.JPEG);
+        const base64 = Utilities.base64Encode(jpegBlob.getBytes());
+        return "data:image/jpeg;base64," + base64;
+      }
+
+      lastError = "Google Drive returned HTTP " + status +
+        " (" + (contentType || "unknown content type") + ").";
+    } catch (error) {
+      lastError = error && error.message ? error.message : String(error);
+    }
+  }
+
+  throw new Error("Could not retrieve the public company logo. " + lastError +
+    " Please check that the logo file is shared as 'Anyone with the link – Viewer'.");
 }
