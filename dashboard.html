@@ -2639,22 +2639,29 @@
       groupCell.style.background = "#eef4fb";
       groupCell.style.padding = "10px 14px";
 
-      const titleRow = document.createElement("div");
-      titleRow.className = "trip-group-title-row";
+      const header = document.createElement("div");
+      header.className = "all-trip-header";
+      header.style.padding = "0";
+      header.style.background = "transparent";
+      header.style.gap = "12px";
 
+      const heading = document.createElement("div");
+      heading.className = "all-trip-heading";
       const label = document.createElement("strong");
+      label.className = "all-trip-id";
       label.textContent = tripId + " — " + tripRecords.length +
         (tripRecords.length === 1 ? " invoice" : " invoices");
-      titleRow.appendChild(label);
+      heading.appendChild(label);
+
+      const actions = document.createElement("div");
+      actions.className = "all-trip-actions";
 
       if (!isHelperAccount()) {
-        const downloadButton = createTripPdfButton("Download PDF", tripId, "download");
-        downloadButton.style.marginLeft = "12px";
-        const printButton = createTripPdfButton("Print", tripId, "print");
-        titleRow.append(downloadButton, printButton);
+        actions.append(
+          createTripPdfButton("Download PDF", tripId, "download"),
+          createTripPdfButton("Print", tripId, "print")
+        );
       }
-
-      groupCell.appendChild(titleRow);
 
       const allReady = tripRecords.length > 0 && tripRecords.every(function(r) {
         return String(r.status || "").trim().toUpperCase() === "READY FOR DELIVERY";
@@ -2663,19 +2670,40 @@
         const departButton = document.createElement("button");
         departButton.type = "button";
         departButton.className = "trip-depart-button";
-        departButton.style.marginLeft = "14px";
         departButton.textContent = "DEPART TRIP";
         departButton.addEventListener("click", function() {
           runWorkflowAction("DEPART", null, tripId);
         });
-        groupCell.appendChild(departButton);
+        actions.appendChild(departButton);
       }
 
-      groupRow.appendChild(groupCell);
-      tableBody.appendChild(groupRow);
+      const invoiceRows = [];
       tripRecords.forEach(function(record) {
         renderDesktopRow(tableBody, record);
+        const invoiceRow = tableBody.lastElementChild;
+        if (invoiceRow) {
+          invoiceRow.hidden = true;
+          invoiceRows.push(invoiceRow);
+        }
       });
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "all-trip-toggle";
+      toggle.setAttribute("aria-label", "Expand Trip " + tripId + " invoices");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.addEventListener("click", function() {
+        const expand = invoiceRows.length > 0 && invoiceRows[0].hidden;
+        invoiceRows.forEach(function(row) { row.hidden = !expand; });
+        toggle.classList.toggle("is-open", expand);
+        toggle.setAttribute("aria-expanded", expand ? "true" : "false");
+        toggle.setAttribute("aria-label", (expand ? "Collapse" : "Expand") + " Trip " + tripId + " invoices");
+      });
+
+      header.append(heading, actions, toggle);
+      groupCell.appendChild(header);
+      groupRow.appendChild(groupCell);
+      tableBody.insertBefore(groupRow, invoiceRows[0] || null);
     });
 
     if (noTripRecords.length) {
