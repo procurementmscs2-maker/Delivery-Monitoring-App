@@ -1040,4 +1040,38 @@
   }
 }
 
+
+  /* Compact columns for the desktop Ongoing tab only */
+  .delivery-table.ongoing-compact-table {
+    min-width: 0;
+    width: 100%;
+    table-layout: auto;
+  }
+  .delivery-table.ongoing-compact-table th,
+  .delivery-table.ongoing-compact-table td {
+    padding: 8px 7px;
+    white-space: normal;
+  }
+  .delivery-table.ongoing-compact-table th {
+    font-size: 9px;
+    letter-spacing: .2px;
+  }
+  .delivery-table.ongoing-compact-table td {
+    font-size: 11px;
+  }
+  .delivery-table.ongoing-compact-table td:first-child,
+  .delivery-table.ongoing-compact-table th:first-child {
+    width: 34px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+  .delivery-table.ongoing-compact-table td:nth-child(2),
+  .delivery-table.ongoing-compact-table th:nth-child(2) { min-width: 95px; }
+  .delivery-table.ongoing-compact-table td:nth-child(3),
+  .delivery-table.ongoing-compact-table th:nth-child(3) { min-width: 140px; }
+  .delivery-table.ongoing-compact-table td:nth-child(4),
+  .delivery-table.ongoing-compact-table th:nth-child(4) { min-width: 115px; }
+  .delivery-table.ongoing-compact-table td:nth-child(5),
+  .delivery-table.ongoing-compact-table th:nth-child(5) { min-width: 70px; }
+
 </style>
