@@ -2693,7 +2693,7 @@
 
     function pdfSafe(value) {
       return String(value == null ? "" : value)
-        .replace(/[\\()]/g, "\\$&");
+        .replace(/[\\()]/g, "\\$&")
         .replace(/[^\x20-\x7E]/g, "?");
     }
 
