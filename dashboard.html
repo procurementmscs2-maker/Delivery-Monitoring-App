@@ -112,10 +112,31 @@
     background: #f8fafc;
   }
 
+  .trip-group-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .trip-group-title {
     font-weight: 700;
     color: #1e293b;
     font-size: 15px;
+  }
+
+  .trip-print-button {
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+    padding: 5px 9px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .trip-print-button:hover {
+    background: #dbeafe;
   }
 
   .trip-group-subtitle {
@@ -2573,6 +2594,11 @@
     }
   }
 
+  // Placeholder until the user specifies the trip PDF contents and format.
+  function printTripPdf(tripId) {
+    alert("PDF printing for Trip " + tripId + " is not configured yet. The PDF contents and layout will be added once specified.");
+  }
+
   function createTripGroup(tripId, records, index, noTripId) {
     const group = document.createElement("section");
     group.className = "trip-group";
@@ -2582,16 +2608,30 @@
 
     const titleBlock = document.createElement("div");
 
+    const titleRow = document.createElement("div");
+    titleRow.className = "trip-group-title-row";
+
     const title = document.createElement("div");
     title.className = "trip-group-title";
     title.textContent = tripId;
+
+    const printButton = document.createElement("button");
+    printButton.type = "button";
+    printButton.className = "trip-print-button";
+    printButton.textContent = "Print PDF";
+    printButton.title = "Print this trip as PDF";
+    printButton.addEventListener("click", function() {
+      printTripPdf(tripId);
+    });
+
+    titleRow.append(title, printButton);
 
     const subtitle = document.createElement("div");
     subtitle.className = "trip-group-subtitle";
     subtitle.textContent =
       records.length + (records.length === 1 ? " invoice" : " invoices");
 
-    titleBlock.append(title, subtitle);
+    titleBlock.append(titleRow, subtitle);
 
     const actions = document.createElement("div");
     actions.className = "trip-group-actions";
