@@ -2686,36 +2686,32 @@
     }
   }
 
-  // Loads the exact logo used in the dashboard header and converts it
-  // to JPEG bytes so it can be embedded directly inside the PDF.
+  // Retrieves the dashboard logo through Apps Script so the browser's
+  // cross-origin canvas restrictions cannot block embedding it in the PDF.
   function loadTripPdfLogo() {
     return new Promise(function(resolve) {
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      image.onload = function() {
-        try {
-          const canvas = document.createElement("canvas");
-          const size = 240;
-          canvas.width = size;
-          canvas.height = size;
-          const context = canvas.getContext("2d");
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, size, size);
-          const scale = Math.min(size / image.width, size / image.height);
-          const width = image.width * scale;
-          const height = image.height * scale;
-          context.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
-          const base64 = canvas.toDataURL("image/jpeg", 0.92).split(",")[1];
-          const binary = atob(base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          resolve(bytes);
-        } catch (error) {
+      google.script.run
+        .withSuccessHandler(function(dataUrl) {
+          try {
+            if (!dataUrl || typeof dataUrl !== "string") {
+              resolve(null);
+              return;
+            }
+            const base64 = dataUrl.substring(dataUrl.indexOf(",") + 1);
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            resolve(bytes);
+          } catch (error) {
+            resolve(null);
+          }
+        })
+        .withFailureHandler(function() {
           resolve(null);
-        }
-      };
-      image.onerror = function() { resolve(null); };
-      image.src = "https://drive.google.com/thumbnail?id=1RDWyPmqJ03W2pA5LQD5CPvcMB7m4ZNu5&sz=w500";
+        })
+        .getTripPdfLogoDataUrl();
     });
   }
 
@@ -2775,8 +2771,10 @@
       return lines.length ? lines : [""];
     }
 
-    function textCommand(text, x, y, size, bold) {
-      return "0 0 0 rg\nBT /F" + (bold ? "2" : "1") + " " + size +
+    function textCommand(text, x, y, size, bold, color, font) {
+      const rgb = color || "0 0 0";
+      const fontResource = font || (bold ? "F2" : "F1");
+      return rgb + " rg\nBT /" + fontResource + " " + size +
         " Tf 1 0 0 1 " + x + " " + y + " Tm (" +
         pdfSafe(text) + ") Tj ET\n";
     }
@@ -2793,10 +2791,18 @@
       let stream = "";
       if (isFirstPage) {
         if (logoBytes && logoBytes.length) {
-          stream += "q 48 0 0 48 " + margin + " 558 cm /Im1 Do Q\n";
+          stream += "q 52 0 0 52 " + margin + " 554 cm /Im1 Do Q\n";
         }
-        stream += textCommand("MSCS PrimeGoods, Inc.", margin + 60, 578, 16, true);
-        stream += textCommand("Dependable Food Supply", margin + 60, 562, 9, false);
+        // Match the company branding in DashboardStyles.html:
+        // Georgia-style serif, blue company name, and red tagline.
+        stream += textCommand(
+          "MSCS PrimeGoods, Inc.", margin + 64, 580, 20, true,
+          "0 0.0353 0.7529", "F4"
+        );
+        stream += textCommand(
+          "Dependable Food Supply", margin + 64, 562, 12, false,
+          "0.8275 0.1843 0.1843", "F3"
+        );
         stream += textCommand("Trip ID: " + tripId, margin, 550, 10, false);
         stream += textCommand("Truck No.: " + (first.truck || ""), margin, 532, 10, false);
         stream += textCommand("Delivery Date: " + (first.deliveryDate || ""), margin, 514, 10, false);
@@ -2860,9 +2866,12 @@
     objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
     objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
     objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+    // Times is the closest built-in PDF font family to the website's Georgia branding.
+    objects[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>";
+    objects[6] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>";
     const hasLogo = !!(logoBytes && logoBytes.length);
-    const imageObject = hasLogo ? 5 : null;
-    const firstPageObject = hasLogo ? 6 : 5;
+    const imageObject = hasLogo ? 7 : null;
+    const firstPageObject = hasLogo ? 8 : 7;
     if (hasLogo) {
       let imageBinary = "";
       for (let i = 0; i < logoBytes.length; i++) imageBinary += String.fromCharCode(logoBytes[i]);
@@ -2879,7 +2888,7 @@
       const xObjectResource = hasLogo && index === 0 ? " /XObject << /Im1 " + imageObject + " 0 R >>" : "";
       objects[pageObject] =
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight +
-        "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>" + xObjectResource + " >> /Contents " +
+        "] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >>" + xObjectResource + " >> /Contents " +
         streamObject + " 0 R >>";
       objects[streamObject] =
         "<< /Length " + stream.length + " >>\nstream\n" + stream + "endstream";
