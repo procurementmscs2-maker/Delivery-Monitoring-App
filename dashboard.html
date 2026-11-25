@@ -103,12 +103,15 @@
   }
   .all-trips-list { margin-top:16px; }
   .all-trip-card { background:#fff; border:1px solid #e2e8f0; border-radius:11px; margin-bottom:11px; overflow:hidden; }
-  .all-trip-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:13px 15px; background:#f8fafc; }
-  .all-trip-heading { display:flex; align-items:center; gap:11px; min-width:0; }
-  .all-trip-toggle { border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:7px; width:32px; height:32px; flex:0 0 32px; cursor:pointer; font-size:17px; line-height:1; }
+  .all-trip-header { display:flex; align-items:center; gap:18px; padding:13px 15px; background:#f8fafc; }
+  .all-trip-heading { display:flex; align-items:center; min-width:0; flex:1 1 auto; }
+  .all-trip-toggle { border:0; outline:0; background:transparent; color:#64748b; width:28px; height:30px; flex:0 0 28px; cursor:pointer; font-size:20px; line-height:1; padding:0; margin-left:auto; }
+  .all-trip-toggle:hover { color:#0f172a; background:transparent; }
   .all-trip-id { font-weight:750; color:#1e293b; overflow-wrap:anywhere; }
   .all-trip-count { color:#64748b; font-size:12px; margin-top:3px; }
-  .all-trip-actions { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+  .all-trip-actions { display:flex; align-items:center; flex-wrap:wrap; gap:14px; }
+  .all-trip-actions .trip-print-button { border:0 !important; outline:0; box-shadow:none !important; background:transparent !important; color:#2563eb; padding:5px 0; font-size:12px; font-weight:600; cursor:pointer; }
+  .all-trip-actions .trip-print-button:hover { color:#1d4ed8; text-decoration:underline; }
   .all-trip-content { padding:12px 14px; }
   .all-trip-content[hidden] { display:none; }
   .all-trip-meta { display:flex; flex-wrap:wrap; gap:7px 18px; color:#475569; font-size:12px; margin-bottom:11px; }
@@ -117,7 +120,7 @@
   .all-trip-invoices th,.all-trip-invoices td { text-align:left; padding:9px 8px; border-bottom:1px solid #e2e8f0; font-size:12px; overflow-wrap:anywhere; }
   .all-trip-invoices th { color:#64748b; background:#f8fafc; font-size:10px; }
   .all-trip-invoices tr:last-child td { border-bottom:0; }
-  @media(max-width:650px) { .all-trip-header { align-items:flex-start; } .all-trip-actions { width:100%; padding-left:43px; } .all-trip-invoices th,.all-trip-invoices td { padding:7px 5px; font-size:10px; } }
+  @media(max-width:650px) { .all-trip-header { gap:10px; padding:11px 12px; } .all-trip-heading { flex:1 1 100%; } .all-trip-actions { width:auto; gap:12px; } .all-trip-toggle { margin-left:auto; } .all-trip-invoices th,.all-trip-invoices td { padding:7px 5px; font-size:10px; } }
 
   .trip-group-header {
     display: flex;
@@ -2589,10 +2592,10 @@
       const titleWrap = document.createElement("div");
       const title = document.createElement("div"); title.className = "all-trip-id"; title.textContent = tripId;
       const countText = document.createElement("div"); countText.className = "all-trip-count"; countText.textContent = records.length+(records.length===1?" invoice":" invoices");
-      titleWrap.append(title,countText); heading.append(toggle,titleWrap);
+      titleWrap.append(title,countText); heading.appendChild(titleWrap);
       const actions = document.createElement("div"); actions.className = "all-trip-actions";
-      actions.append(createTripPdfButton("Download PDF",tripId,"download"),createTripPdfButton("Print",tripId,"print"));
-      header.append(heading,actions);
+      actions.append(createTripPdfButton("Download PDF",tripId,"download"),createTripPdfButton("Print PDF",tripId,"print"));
+      header.append(heading,actions,toggle);
       const meta = document.createElement("div"); meta.className = "all-trip-meta";
       function uniqueValues(key,helperList){ const values=records.map(function(record){return helperList?(record.helperNames||[]).join(", "):record[key];}).filter(Boolean); return Array.from(new Set(values)).join(", ")||"—"; }
       [["Delivery Date",uniqueValues("deliveryDate")],["Truck",uniqueValues("truck")],["Driver",uniqueValues("driver")],["Helper/s",uniqueValues("",true)]].forEach(function(item){ const span=document.createElement("span"); const strong=document.createElement("strong"); strong.textContent=item[0]+": "; span.append(strong,document.createTextNode(item[1])); meta.appendChild(span); });
