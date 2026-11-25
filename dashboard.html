@@ -2693,12 +2693,12 @@
 
     function pdfSafe(value) {
       return String(value == null ? "" : value)
-        .replace(/[\\\\()]/g, "\\"\\\\$&"")
-        .replace(/[^\\x20-\\x7E]/g, "?");
+        .replace(/[\\()]/g, "\\$&");
+        .replace(/[^\x20-\x7E]/g, "?");
     }
 
     function wrapText(value, maxChars) {
-      const words = String(value == null ? "" : value).split(/\\s+/);
+      const words = String(value == null ? "" : value).split(/\s+/);
       const lines = [];
       let line = "";
       words.forEach(function(word) {
