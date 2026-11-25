@@ -2809,11 +2809,16 @@
         );
 
         // Trip details are grouped below the branding in two columns.
-        stream += textCommand("Trip ID: " + tripId, margin, 478, 10, false);
-        stream += textCommand("Truck No.: " + (first.truck || ""), margin, 460, 10, false);
-        stream += textCommand("Delivery Date: " + (first.deliveryDate || ""), 330, 478, 10, false);
-        stream += textCommand("Driver: " + (first.driver || ""), 330, 460, 10, false);
-        stream += textCommand("Helper/s: " + helpers.join(", "), margin, 442, 10, false);
+        stream += textCommand("Trip ID:", margin, 478, 10, true);
+        stream += textCommand(tripId, margin + 36, 478, 10, false);
+        stream += textCommand("Truck No.:", margin, 460, 10, true);
+        stream += textCommand(first.truck || "", margin + 49, 460, 10, false);
+        stream += textCommand("Delivery Date:", 330, 478, 10, true);
+        stream += textCommand(first.deliveryDate || "", 398, 478, 10, false);
+        stream += textCommand("Driver:", 330, 460, 10, true);
+        stream += textCommand(first.driver || "", 364, 460, 10, false);
+        stream += textCommand("Helper/s:", margin, 442, 10, true);
+        stream += textCommand(helpers.join(", "), margin + 44, 442, 10, false);
       } else {
         stream += textCommand("MSCS Primegoods, Inc. - Trip ID: " + tripId, margin, 574, 11, true);
       }
