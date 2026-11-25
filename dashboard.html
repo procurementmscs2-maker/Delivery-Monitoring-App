@@ -2171,6 +2171,18 @@
 
     if (isHelperAccount()) {
       document.getElementById("selectionHeader").style.display = "none";
+
+      // Helpers only see Delivery Records and Audit Logs in the main navigation.
+      ["allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
+        const tab = document.getElementById(id);
+        if (tab) tab.style.display = "none";
+      });
+    } else {
+      // Restore all tabs for Admin, Manager, and Encoder accounts.
+      ["allInvoicesMainTab", "pullOutMainTab", "toFollowMainTab"].forEach(function(id) {
+        const tab = document.getElementById(id);
+        if (tab) tab.style.display = "";
+      });
     }
 
     switchMainView("records");
@@ -2183,6 +2195,11 @@
    ****************************************************/
 
   function switchMainView(view) {
+    // Prevent Helper accounts from opening the non-Helper main sections.
+    if (isHelperAccount() && !["records", "audit"].includes(view)) {
+      view = "records";
+    }
+
     const sections = {
       records: document.getElementById("deliverySection"),
       audit: document.getElementById("auditLogsSection"),
