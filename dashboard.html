@@ -2708,8 +2708,12 @@
             resolve(null);
           }
         })
-        .withFailureHandler(function() {
-          resolve(null);
+        .withFailureHandler(function(error) {
+          reject(new Error(
+            error && error.message
+              ? "Unable to load the company logo: " + error.message
+              : "Unable to load the company logo from Google Drive."
+          ));
         })
         .getTripPdfLogoDataUrl();
     });
