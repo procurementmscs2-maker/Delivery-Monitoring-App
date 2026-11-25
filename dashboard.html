@@ -2625,6 +2625,7 @@
     });
 
     const table = tableBody.closest("table");
+    if (table) table.classList.add("ongoing-compact-table");
     const headerRow = table && table.querySelector("thead tr");
     if (headerRow) {
       headerRow.replaceChildren();
@@ -2668,7 +2669,18 @@
       const assignments = document.createElement("div");
       assignments.className = "all-trip-count";
       assignments.style.marginTop = "5px";
-      assignments.textContent = "Driver: " + (drivers.join(", ") || "-") + " • Helper(s): " + (helpers.join(", ") || "-");
+      function appendAssignmentLine(container, labelText, valueText) {
+        const line = document.createElement("div");
+        line.style.marginTop = "3px";
+        const labelPart = document.createElement("strong");
+        labelPart.textContent = labelText + ": ";
+        const valuePart = document.createElement("span");
+        valuePart.textContent = valueText || "-";
+        line.append(labelPart, valuePart);
+        container.appendChild(line);
+      }
+      appendAssignmentLine(assignments, "Driver", drivers.join(", ") || "-");
+      appendAssignmentLine(assignments, "Helper(s)", helpers.join(", ") || "-");
       heading.append(label, assignments);
 
       const actions = document.createElement("div");
