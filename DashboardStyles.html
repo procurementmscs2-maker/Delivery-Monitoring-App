@@ -1048,17 +1048,16 @@
     width: 100%;
     table-layout: fixed;
   }
-  /* Status and edit controls share the final column; keep the controls aligned. */
-  .delivery-table.ongoing-compact-table th:last-child,
-  .delivery-table.ongoing-compact-table td:last-child {
+  /* Keep status and action columns consistent so the edit icons align. */
+  .delivery-table.ongoing-compact-table td:nth-last-child(2) {
     width: 175px;
   }
   .delivery-table.ongoing-compact-table td:last-child {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    width: 48px;
+    text-align: right;
+    padding-right: 10px;
   }
-  .delivery-table.ongoing-compact-table td:last-child > div {
+  .delivery-table.ongoing-compact-table td:last-child .status-edit-button.icon-only {
     margin-left: auto;
   }
   .delivery-table.ongoing-compact-table th,
