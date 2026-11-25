@@ -3210,7 +3210,7 @@
       statusCell.appendChild(createStatusBadge(record.status));
       row.appendChild(statusCell);
 
-      const actionCell = document.createElement("td");
+      const actionCell = document.createElement(compactOngoing ? "div" : "td");
       appendWorkflowActions(actionCell, record);
       if (canShowEditStatus(record)) {
         const statusButton = document.createElement("button");
