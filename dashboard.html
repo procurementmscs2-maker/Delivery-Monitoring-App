@@ -2794,29 +2794,31 @@
     function makePage(isFirstPage, pageRecords) {
       let stream = "";
       if (isFirstPage) {
+        // Center the company logo and place the company name and tagline
+        // directly below it, with a clear gap before the trip information.
         if (logoBytes && logoBytes.length) {
-          stream += "q 52 0 0 52 " + margin + " 554 cm /Im1 Do Q\n";
+          stream += "q 52 0 0 52 442 548 cm /Im1 Do Q\n";
         }
-        // Match the company branding in DashboardStyles.html:
-        // Georgia-style serif, blue company name, and red tagline.
         stream += textCommand(
-          "MSCS PrimeGoods, Inc.", margin + 64, 580, 20, true,
+          "MSCS PrimeGoods, Inc.", 369, 526, 20, true,
           "0 0.0353 0.7529", "F4"
         );
         stream += textCommand(
-          "Dependable Food Supply", margin + 64, 562, 12, false,
+          "Dependable Food Supply", 405, 508, 12, false,
           "0.8275 0.1843 0.1843", "F3"
         );
-        stream += textCommand("Trip ID: " + tripId, margin, 550, 10, false);
-        stream += textCommand("Truck No.: " + (first.truck || ""), margin, 532, 10, false);
-        stream += textCommand("Delivery Date: " + (first.deliveryDate || ""), margin, 514, 10, false);
-        stream += textCommand("Driver: " + (first.driver || ""), 330, 550, 10, false);
-        stream += textCommand("Helper/s: " + helpers.join(", "), 330, 532, 10, false);
+
+        // Trip details are grouped below the branding in two columns.
+        stream += textCommand("Trip ID: " + tripId, margin, 478, 10, false);
+        stream += textCommand("Truck No.: " + (first.truck || ""), margin, 460, 10, false);
+        stream += textCommand("Delivery Date: " + (first.deliveryDate || ""), 330, 478, 10, false);
+        stream += textCommand("Driver: " + (first.driver || ""), 330, 460, 10, false);
+        stream += textCommand("Helper/s: " + helpers.join(", "), margin, 442, 10, false);
       } else {
         stream += textCommand("MSCS Primegoods, Inc. - Trip ID: " + tripId, margin, 574, 11, true);
       }
 
-      let yTop = isFirstPage ? 500 : 548;
+      let yTop = isFirstPage ? 420 : 548;
       const headerHeight = 34;
       const rowHeight = 54;
       let x = margin;
