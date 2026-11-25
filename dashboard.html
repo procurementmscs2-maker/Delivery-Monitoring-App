@@ -2642,7 +2642,7 @@
       headerRow.replaceChildren();
       const labels = [];
       if (canCreateTrips()) labels.push("SELECT");
-      labels.push("INVOICE NUMBER", "CUSTOMER", "SALES REPRESENTATIVE", "AREA", "STATUS");
+      labels.push("INVOICE NUMBER", "CUSTOMER", "SALES REPRESENTATIVE", "AREA", "");
       labels.forEach(function(labelText) {
         const th = document.createElement("th");
         th.textContent = labelText;
