@@ -827,6 +827,34 @@
     z-index: 3;
   }
 
+  /* Empty future main tabs */
+  #dashboardView .blank-main-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+  #dashboardView .blank-subtabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0 0 9px;
+    border-bottom: 1px solid #dbe3ef;
+  }
+  #dashboardView .blank-subtabs .delivery-tab {
+    border: 0;
+    border-radius: 7px;
+    padding: 9px 13px;
+    background: transparent;
+    color: #64748b;
+    font-weight: 650;
+  }
+  #dashboardView .blank-subtabs .delivery-tab.active {
+    color: #1d4ed8;
+    background: #eaf2ff;
+  }
+  #dashboardView .blank-subpanel { min-height: 0; }
+
   /* Main navigation bar and its delivery-category sub-navigation. */
   #dashboardView .audit-navigation {
     display: flex;
@@ -1317,25 +1345,24 @@
 
     <!-- MAIN NAVIGATION -->
     <div class="audit-navigation">
-      <button
-        type="button"
-        class="delivery-tab active"
-        id="recordsMainTab"
-        onclick="switchMainView('records')"
-      >
-        Delivery Records
-      </button>
-
-      <button
-        type="button"
-        class="delivery-tab"
-        id="auditMainTab"
-        onclick="switchMainView('audit')"
-      >
-        Audit Logs
-        <span class="tab-count" id="auditCount">0</span>
-      </button>
+      <button type="button" class="delivery-tab active" id="recordsMainTab" onclick="switchMainView('records')">Delivery Records</button>
+      <button type="button" class="delivery-tab" id="allInvoicesMainTab" onclick="switchMainView('allInvoices')">All Invoices</button>
+      <button type="button" class="delivery-tab" id="pullOutMainTab" onclick="switchMainView('pullOut')">Pull-Out</button>
+      <button type="button" class="delivery-tab" id="toFollowMainTab" onclick="switchMainView('toFollow')">To Follow</button>
+      <button type="button" class="delivery-tab" id="auditMainTab" onclick="switchMainView('audit')">Audit Logs <span class="tab-count" id="auditCount">0</span></button>
     </div>
+
+    <!-- EMPTY PLACEHOLDER SECTIONS: FUNCTIONS TO BE DEFINED LATER -->
+    <section id="allInvoicesSection" class="blank-main-section" style="display:none;">
+      <div class="blank-subtabs">
+        <button type="button" class="delivery-tab active" id="allInvoicesDeliveryTab" onclick="switchAllInvoicesSubTab('delivery')">Delivery</button>
+        <button type="button" class="delivery-tab" id="allInvoicesPickedUpTab" onclick="switchAllInvoicesSubTab('pickedUp')">Picked Up</button>
+      </div>
+      <div id="allInvoicesDeliveryPanel" class="blank-subpanel"></div>
+      <div id="allInvoicesPickedUpPanel" class="blank-subpanel" style="display:none;"></div>
+    </section>
+    <section id="pullOutSection" class="blank-main-section" style="display:none;"></section>
+    <section id="toFollowSection" class="blank-main-section" style="display:none;"></section>
 
     <!-- DELIVERY SECTION -->
     <main class="delivery-section" id="deliverySection">
@@ -2138,38 +2165,41 @@
    ****************************************************/
 
   function switchMainView(view) {
-    const recordsSection = document.getElementById("deliverySection");
-    const auditSection = document.getElementById("auditLogsSection");
+    const sections = {
+      records: document.getElementById("deliverySection"),
+      audit: document.getElementById("auditLogsSection"),
+      allInvoices: document.getElementById("allInvoicesSection"),
+      pullOut: document.getElementById("pullOutSection"),
+      toFollow: document.getElementById("toFollowSection")
+    };
+    const buttons = {
+      records: document.getElementById("recordsMainTab"),
+      audit: document.getElementById("auditMainTab"),
+      allInvoices: document.getElementById("allInvoicesMainTab"),
+      pullOut: document.getElementById("pullOutMainTab"),
+      toFollow: document.getElementById("toFollowMainTab")
+    };
 
-    const recordsButton = document.getElementById("recordsMainTab");
-    const auditButton = document.getElementById("auditMainTab");
+    Object.keys(sections).forEach(function(key) {
+      const section = sections[key];
+      const active = key === view;
+      if (isHelperAccount() && (key === "records" || key === "audit")) {
+        section.style.setProperty("display", active ? (key === "records" ? "flex" : "flex") : "none", "important");
+      } else {
+        section.style.display = active ? (key === "records" || key === "audit" ? "flex" : "block") : "none";
+      }
+      buttons[key].classList.toggle("active", active);
+    });
 
-    const showAudit = view === "audit";
+    if (view === "audit") loadAuditLogs();
+  }
 
-    // Helper dashboard: enforce the active tab against legacy layout CSS.
-    // The natural-scroll layout must not force both sections to remain visible.
-    if (isHelperAccount()) {
-      recordsSection.style.setProperty(
-        "display",
-        showAudit ? "none" : "flex",
-        "important"
-      );
-      auditSection.style.setProperty(
-        "display",
-        showAudit ? "flex" : "none",
-        "important"
-      );
-    } else {
-      recordsSection.style.display = showAudit ? "none" : "flex";
-      auditSection.style.display = showAudit ? "flex" : "none";
-    }
-
-    recordsButton.classList.toggle("active", !showAudit);
-    auditButton.classList.toggle("active", showAudit);
-
-    if (showAudit) {
-      loadAuditLogs();
-    }
+  function switchAllInvoicesSubTab(tab) {
+    const showDelivery = tab === "delivery";
+    document.getElementById("allInvoicesDeliveryPanel").style.display = showDelivery ? "block" : "none";
+    document.getElementById("allInvoicesPickedUpPanel").style.display = showDelivery ? "none" : "block";
+    document.getElementById("allInvoicesDeliveryTab").classList.toggle("active", showDelivery);
+    document.getElementById("allInvoicesPickedUpTab").classList.toggle("active", !showDelivery);
   }
 
 
