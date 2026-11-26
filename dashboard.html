@@ -1666,6 +1666,51 @@
     }
   }
 
+
+  /* All Invoices subtabs: match the rounded Delivery Records status tabs. */
+  #dashboardView .blank-subtabs.delivery-tabs .delivery-tab {
+    width: 100%;
+    min-height: 58px;
+    margin: 0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition: background-color 0.24s ease, border-color 0.24s ease, color 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
+  }
+
+  #dashboardView .blank-subtabs.delivery-tabs .delivery-tab:hover {
+    background: #f8fbff;
+    border-color: #bfdbfe;
+    color: #2563eb;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.07);
+  }
+
+  #dashboardView .blank-subtabs.delivery-tabs .delivery-tab.active {
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.25), 0 3px 9px rgba(37, 99, 235, 0.08);
+  }
+
+  @media (max-width: 650px) {
+    #dashboardView .blank-subtabs.delivery-tabs .delivery-tab {
+      min-height: 49px;
+      padding: 9px;
+      font-size: 11px;
+    }
+  }
+
 </style>
 
 <div id="dashboardView" style="display:none;">
