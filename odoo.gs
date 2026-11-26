@@ -1272,8 +1272,10 @@ function createDeliveryTripLocked_(
   }
 
   const deliveryDate = String(schedule.deliveryDate || "").trim();
-  const truck = String(schedule.truck || "").trim();
-  const driver = String(schedule.driver || "").trim();
+  const truckId = Number(schedule.truckId);
+  const driverIds = Array.isArray(schedule.driverIds)
+    ? [...new Set(schedule.driverIds.map(Number))]
+    : [];
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate)) {
     throw new Error("Please provide a valid delivery date.");
@@ -1288,8 +1290,9 @@ function createDeliveryTripLocked_(
     throw new Error("The delivery date is invalid.");
   }
 
-  if (!truck || !driver) {
-    throw new Error("Truck and Driver are required.");
+  if (!Number.isInteger(truckId) || truckId <= 0 || !driverIds.length ||
+      driverIds.some(id => !Number.isInteger(id) || id <= 0)) {
+    throw new Error("Please select one truck and at least one driver.");
   }
 
   // Each selected invoice must have its own area.
@@ -1330,6 +1333,23 @@ function createDeliveryTripLocked_(
 
   const connection = odooGetConnection_();
   const helperMap = odooGetHelperMap_(connection);
+
+  const activeTrucks = odooSearchReadAll_(
+    connection, "x_delivery_trucks",
+    [["id", "=", truckId], ["x_active", "=", true]],
+    ["id", "x_name"], "id asc"
+  );
+  if (!activeTrucks.length) throw new Error("The selected truck is inactive or does not exist.");
+
+  const activeDrivers = odooSearchReadAll_(
+    connection, "x_delivery_drivers",
+    [["x_active", "=", true]], ["id", "x_name"], "id asc"
+  );
+  const driverNameMap = {};
+  activeDrivers.forEach(item => { driverNameMap[Number(item.id)] = item.x_name || "Unnamed Driver"; });
+  driverIds.forEach(id => {
+    if (!driverNameMap[id]) throw new Error("A selected driver is invalid or inactive.");
+  });
 
   const activeHelpers = odooSearchReadAll_(
     connection,
@@ -1374,8 +1394,8 @@ function createDeliveryTripLocked_(
       "x_studio_status",
       "x_studio_delivery_date",
       "x_studio_area",
-      "x_studio_truck",
-      "x_studio_driver",
+      "x_studio_truck_1",
+      "x_studio_drivers",
       "x_studio_helper_1",
       "x_studio_trip_id"
     ],
@@ -1442,8 +1462,8 @@ function createDeliveryTripLocked_(
 
   const sharedUpdateValues = {
     x_studio_delivery_date: deliveryDate,
-    x_studio_truck: truck,
-    x_studio_driver: driver,
+    x_studio_truck_1: truckId,
+    x_studio_drivers: [[6, 0, driverIds]],
     x_studio_helper_1: [[6, 0, helperIds]],
     x_studio_trip_id: tripId,
     x_studio_status: "SCHEDULED"
@@ -1480,8 +1500,8 @@ function createDeliveryTripLocked_(
     const oldValues = {
       "Delivery Date": record.x_studio_delivery_date || "",
       "Area": record.x_studio_area || "",
-      "Truck": record.x_studio_truck || "",
-      "Driver": odooGetRelationName_(record.x_studio_driver),
+      "Truck": odooGetRelationName_(record.x_studio_truck_1),
+      "Driver(s)": (record.x_studio_drivers || []).map(id => driverNameMap[Number(id)] || "Inactive Driver #" + id).join(", "),
       "Helper(s)": oldHelperNames,
       "Trip ID": record.x_studio_trip_id || "",
       "Status": record.x_studio_status || ""
@@ -1490,8 +1510,8 @@ function createDeliveryTripLocked_(
     const newValues = {
       "Delivery Date": deliveryDate,
       "Area": invoiceAreas[recordId],
-      "Truck": truck,
-      "Driver": driver,
+      "Truck": activeTrucks[0].x_name || "",
+      "Driver(s)": driverIds.map(id => driverNameMap[id]).join(", "),
       "Helper(s)": newHelperNames,
       "Trip ID": tripId,
       "Status": "SCHEDULED"
@@ -1505,11 +1525,12 @@ function createDeliveryTripLocked_(
       x_studio_area:
         record.x_studio_area || false,
 
-      x_studio_truck:
-        record.x_studio_truck || false,
+      x_studio_truck_1:
+        Array.isArray(record.x_studio_truck_1) ? record.x_studio_truck_1[0] : false,
 
-      x_studio_driver:
-        record.x_studio_driver || false,
+      x_studio_drivers: [
+        [6, 0, (record.x_studio_drivers || []).map(Number)]
+      ],
 
       x_studio_helper_1: [
         [6, 0, oldHelperIds]
