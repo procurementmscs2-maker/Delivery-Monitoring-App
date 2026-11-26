@@ -690,7 +690,7 @@ function getDeliveryDashboardData(token) {
  * All Invoices page. This is separate from Delivery Records:
  * PICKED UP invoices are visible here but are not added to NEW.
  */
-function getAllInvoiceRegisterData(token, deliveryType, page, pageSize, searchTerm) {
+function getAllInvoiceRegisterData(token, deliveryType, page, pageSize, searchTerm, filters) {
   const sessionUser = getSessionUser(token);
 
   if (!sessionUser) {
@@ -716,12 +716,23 @@ function getAllInvoiceRegisterData(token, deliveryType, page, pageSize, searchTe
   const requestedPageSize = parseInt(pageSize, 10) || 100;
   const limit = Math.min(100, Math.max(1, requestedPageSize));
   const search = String(searchTerm || "").trim();
+  const invoiceFilters = filters && typeof filters === "object" ? filters : {};
 
   const domain = [
     ["move_type", "=", "out_invoice"],
     ["state", "=", "posted"],
     ["x_studio_delivery_type", "=", normalizedType === "PICKED UP" ? "PICKED UP" : "DELIVERY"]
   ];
+
+  if (invoiceFilters.dateFrom) {
+    domain.push(["invoice_date", ">=", String(invoiceFilters.dateFrom)]);
+  }
+  if (invoiceFilters.dateTo) {
+    domain.push(["invoice_date", "<=", String(invoiceFilters.dateTo)]);
+  }
+  if (invoiceFilters.paymentStatus) {
+    domain.push(["payment_state", "=", String(invoiceFilters.paymentStatus)]);
+  }
 
   if (search) {
     domain.push("|", "|",
