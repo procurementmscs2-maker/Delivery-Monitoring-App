@@ -705,6 +705,87 @@
     margin: 6px 0 0;
   }
 
+  /* SEARCHABLE TRUCK AND MULTI-SELECT ASSIGNMENT CONTROLS */
+
+  .truck-picker {
+    position: relative;
+    width: 100%;
+  }
+
+  .truck-picker-search,
+  .assignment-list-search {
+    display: block;
+    width: 100%;
+    min-height: 43px;
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+  }
+
+  .truck-picker-search:focus,
+  .assignment-list-search:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, .08);
+  }
+
+  .truck-picker-results {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 190px;
+    overflow-y: auto;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, .12);
+  }
+
+  .truck-picker-results[hidden] {
+    display: none;
+  }
+
+  .truck-picker-option {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 0;
+    border-bottom: 1px solid #f1f5f9;
+    border-radius: 0;
+    background: #fff;
+    color: #374151;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .truck-picker-option:hover {
+    background: #eff6ff;
+  }
+
+  .truck-picker-empty {
+    padding: 12px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .assignment-list-search {
+    margin-bottom: 7px;
+  }
+
+  .assignment-option-list {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
   /* HELPER CHECKBOXES */
 
   .helper-checkbox-list {
