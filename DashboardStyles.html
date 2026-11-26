@@ -778,7 +778,24 @@
   }
 
   .assignment-list-search {
-    margin-bottom: 7px;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 7px;
+    flex: 0 0 auto;
+  }
+
+  /* Keep the search field above the selectable names. */
+  .helper-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .helper-checkbox-list > .assignment-option-list {
+    display: block;
+    width: 100%;
+    flex: 1 1 auto;
   }
 
   .assignment-option-list {
