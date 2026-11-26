@@ -1743,12 +1743,12 @@
           <h3>All Invoices</h3>
           <p class="delivery-count" id="allInvoicesCount">Loading invoice count...</p>
         </div>
-        <button type="button" class="refresh-button" id="refreshAllInvoicesButton" onclick="loadAllInvoiceRegister()">↻ Refresh</button>
+        <button type="button" class="refresh-button" id="refreshAllInvoicesButton" onclick="loadAllInvoiceRegister(1)">↻ Refresh</button>
       </div>
       <div class="delivery-search-toolbar">
         <div class="delivery-search audit-search">
           <span class="search-icon">⌕</span>
-          <input type="search" id="allInvoicesSearch" placeholder="Search invoice, customer, or sales order..." autocomplete="off" oninput="renderAllInvoiceRegister()">
+          <input type="search" id="allInvoicesSearch" placeholder="Search invoice, customer, or sales order..." autocomplete="off" oninput="handleAllInvoiceSearch()">
         </div>
       </div>
       <div class="blank-subtabs">
@@ -2559,9 +2559,15 @@
   let deliveryAssignmentHelpers = [];
 
   let selectedInvoiceIds = new Set();
-  let allInvoiceRegisterData = { deliveryInvoices: [], pickedUpInvoices: [] };
-  let allInvoiceRegisterLoaded = false;
+  let allInvoiceRegisterData = { delivery: [], pickedUp: [] };
+  let allInvoiceRegisterLoaded = { delivery: false, pickedUp: false };
   let allInvoiceRegisterLoading = false;
+  let allInvoiceRegisterPage = { delivery: 1, pickedUp: 1 };
+  let allInvoiceRegisterMeta = {
+    delivery: { totalCount: 0, totalPages: 0 },
+    pickedUp: { totalCount: 0, totalPages: 0 }
+  };
+  let allInvoiceSearchTimer = null;
   let currentAllInvoicesSubTab = "delivery";
   let currentTripAction = "NEW_TRIP";
   let currentEditTripId = "";
@@ -2727,7 +2733,7 @@
     if (view === "audit") loadAuditLogs();
     if (view === "allTrips") renderAllTrips();
     if (view === "allInvoices") {
-      if (!allInvoiceRegisterLoaded) loadAllInvoiceRegister();
+      if (!allInvoiceRegisterLoaded[currentAllInvoicesSubTab]) loadAllInvoiceRegister(1);
       else renderAllInvoiceRegister();
     }
   }
@@ -2739,24 +2745,42 @@
     document.getElementById("allInvoicesPickedUpPanel").style.display = showDelivery ? "none" : "block";
     document.getElementById("allInvoicesDeliveryTab").classList.toggle("active", showDelivery);
     document.getElementById("allInvoicesPickedUpTab").classList.toggle("active", !showDelivery);
-    renderAllInvoiceRegister();
+
+    if (!allInvoiceRegisterLoaded[currentAllInvoicesSubTab]) {
+      loadAllInvoiceRegister(1);
+    } else {
+      renderAllInvoiceRegister();
+    }
   }
 
 
-  function loadAllInvoiceRegister() {
+  function handleAllInvoiceSearch() {
+    if (allInvoiceSearchTimer) clearTimeout(allInvoiceSearchTimer);
+    allInvoiceSearchTimer = setTimeout(function() {
+      allInvoiceRegisterPage[currentAllInvoicesSubTab] = 1;
+      loadAllInvoiceRegister(1);
+    }, 400);
+  }
+
+
+  function loadAllInvoiceRegister(page) {
     if (!currentSessionToken || allInvoiceRegisterLoading) return;
 
-    allInvoiceRegisterLoading = true;
+    const category = currentAllInvoicesSubTab;
+    const isPickedUp = category === "pickedUp";
+    const deliveryType = isPickedUp ? "PICKED UP" : "DELIVERY";
+    const targetPage = Math.max(1, Number(page) || 1);
     const button = document.getElementById("refreshAllInvoicesButton");
     const count = document.getElementById("allInvoicesCount");
-    const deliveryPanel = document.getElementById("allInvoicesDeliveryPanel");
-    const pickedUpPanel = document.getElementById("allInvoicesPickedUpPanel");
+    const panel = document.getElementById(
+      isPickedUp ? "allInvoicesPickedUpPanel" : "allInvoicesDeliveryPanel"
+    );
 
+    allInvoiceRegisterLoading = true;
     button.disabled = true;
     button.textContent = "Loading...";
-    count.textContent = "Retrieving posted customer invoices from Odoo...";
-    deliveryPanel.innerHTML = '<div class="all-invoices-empty">Loading Delivery invoices...</div>';
-    pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Loading Picked Up invoices...</div>';
+    count.textContent = "Retrieving " + (isPickedUp ? "Picked Up" : "Delivery") + " invoices from Odoo...";
+    panel.innerHTML = '<div class="all-invoices-empty">Loading invoices...</div>';
 
     google.script.run
       .withSuccessHandler(function(result) {
@@ -2765,116 +2789,141 @@
         button.textContent = "↻ Refresh";
 
         if (!result || !result.success) {
-          allInvoiceRegisterLoaded = false;
-          count.textContent = "Unable to retrieve invoices.";
-          deliveryPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Delivery invoices.</div>';
-          pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Picked Up invoices.</div>';
+          allInvoiceRegisterLoaded[category] = false;
+          count.textContent = "Unable to retrieve " + (isPickedUp ? "Picked Up" : "Delivery") + " invoices.";
+          panel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve invoices.</div>';
           return;
         }
 
-        allInvoiceRegisterData = {
-          deliveryInvoices: result.deliveryInvoices || [],
-          pickedUpInvoices: result.pickedUpInvoices || []
+        allInvoiceRegisterData[category] = Array.isArray(result.invoices) ? result.invoices : [];
+        allInvoiceRegisterPage[category] = Number(result.page) || targetPage;
+        allInvoiceRegisterMeta[category] = {
+          totalCount: Number(result.totalCount) || 0,
+          totalPages: Number(result.totalPages) || 0
         };
-        allInvoiceRegisterLoaded = true;
+        allInvoiceRegisterLoaded[category] = true;
         renderAllInvoiceRegister();
       })
       .withFailureHandler(function(error) {
         allInvoiceRegisterLoading = false;
-        allInvoiceRegisterLoaded = false;
+        allInvoiceRegisterLoaded[category] = false;
         button.disabled = false;
         button.textContent = "↻ Refresh";
         count.textContent = error.message || "Unable to retrieve invoices.";
-        deliveryPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Delivery invoices.</div>';
-        pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Picked Up invoices.</div>';
+        panel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve invoices. Please try again.</div>';
       })
-      .getAllInvoiceRegisterData(currentSessionToken);
+      .getAllInvoiceRegisterData(
+        currentSessionToken,
+        deliveryType,
+        targetPage,
+        100,
+        document.getElementById("allInvoicesSearch").value.trim()
+      );
   }
 
 
   function renderAllInvoiceRegister() {
-    if (!allInvoiceRegisterLoaded) return;
+    const category = currentAllInvoicesSubTab;
+    if (!allInvoiceRegisterLoaded[category]) return;
 
-    const isPickedUp = currentAllInvoicesSubTab === "pickedUp";
-    const invoices = isPickedUp
-      ? allInvoiceRegisterData.pickedUpInvoices
-      : allInvoiceRegisterData.deliveryInvoices;
+    const isPickedUp = category === "pickedUp";
+    const invoices = allInvoiceRegisterData[category] || [];
     const panel = document.getElementById(
       isPickedUp ? "allInvoicesPickedUpPanel" : "allInvoicesDeliveryPanel"
     );
-    const search = String(document.getElementById("allInvoicesSearch").value || "")
-      .trim().toLowerCase();
+    const search = String(document.getElementById("allInvoicesSearch").value || "").trim();
+    const meta = allInvoiceRegisterMeta[category];
+    const totalCount = meta.totalCount;
+    const totalPages = meta.totalPages;
+    const currentPage = allInvoiceRegisterPage[category];
 
-    const filtered = invoices.filter(function(invoice) {
-      const searchable = [
-        invoice.invoiceNumber,
-        invoice.customerName,
-        invoice.salesOrderNumber,
-        invoice.invoiceDate,
-        invoice.paymentStatus
-      ].join(" ").toLowerCase();
-      return !search || searchable.includes(search);
-    });
-
-    const total = allInvoiceRegisterData.deliveryInvoices.length +
-      allInvoiceRegisterData.pickedUpInvoices.length;
     document.getElementById("allInvoicesCount").textContent =
-      "Showing " + filtered.length + " of " + invoices.length +
-      " " + (isPickedUp ? "Picked Up" : "Delivery") +
-      " invoices · " + total + " invoices overall";
+      "Showing " + invoices.length + " of " + totalCount + " " +
+      (isPickedUp ? "Picked Up" : "Delivery") + " invoices" +
+      (search ? " matching search" : "");
 
     panel.replaceChildren();
 
-    if (!filtered.length) {
+    if (!invoices.length) {
       const empty = document.createElement("div");
       empty.className = "all-invoices-empty";
       empty.textContent = search
         ? "No invoices match your search."
         : "No " + (isPickedUp ? "Picked Up" : "Delivery") + " invoices found.";
       panel.appendChild(empty);
-      return;
+    } else {
+      const wrapper = document.createElement("div");
+      wrapper.className = "all-invoices-table-wrap";
+      const table = document.createElement("table");
+      table.className = "all-invoices-table";
+      const thead = document.createElement("thead");
+      const header = document.createElement("tr");
+      ["INVOICE NUMBER", "INVOICE DATE", "CUSTOMER", "SALES ORDER", "PAYMENT STATUS", "TOTAL"].forEach(function(label) {
+        const th = document.createElement("th");
+        th.textContent = label;
+        header.appendChild(th);
+      });
+      thead.appendChild(header);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      invoices.forEach(function(invoice) {
+        const row = document.createElement("tr");
+        [
+          invoice.invoiceNumber || "-",
+          invoice.invoiceDate || "-",
+          invoice.customerName || "-",
+          invoice.salesOrderNumber || "-",
+          String(invoice.paymentStatus || "").replace(/_/g, " ").toUpperCase() || "-",
+          (invoice.currency ? invoice.currency + " " : "") +
+            Number(invoice.amountTotal || 0).toLocaleString("en-PH", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })
+        ].forEach(function(value) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+      panel.appendChild(wrapper);
     }
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "all-invoices-table-wrap";
-    const table = document.createElement("table");
-    table.className = "all-invoices-table";
-    const thead = document.createElement("thead");
-    const header = document.createElement("tr");
-    ["INVOICE NUMBER", "INVOICE DATE", "CUSTOMER", "SALES ORDER", "PAYMENT STATUS", "TOTAL"].forEach(function(label) {
-      const th = document.createElement("th");
-      th.textContent = label;
-      header.appendChild(th);
+    const pagination = document.createElement("div");
+    pagination.className = "all-invoices-pagination";
+    pagination.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 2px;";
+    const pageLabel = document.createElement("span");
+    pageLabel.textContent = totalCount
+      ? "Page " + currentPage + " of " + totalPages
+      : "Page 0 of 0";
+    const controls = document.createElement("div");
+    controls.style.cssText = "display:flex;gap:8px;";
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.className = "refresh-button";
+    previous.textContent = "← Previous";
+    previous.disabled = currentPage <= 1 || allInvoiceRegisterLoading;
+    previous.addEventListener("click", function() {
+      allInvoiceRegisterPage[category] = Math.max(1, currentPage - 1);
+      loadAllInvoiceRegister(currentPage - 1);
     });
-    thead.appendChild(header);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-    filtered.forEach(function(invoice) {
-      const row = document.createElement("tr");
-      [
-        invoice.invoiceNumber || "-",
-        invoice.invoiceDate || "-",
-        invoice.customerName || "-",
-        invoice.salesOrderNumber || "-",
-        String(invoice.paymentStatus || "").replace(/_/g, " ").toUpperCase() || "-",
-        (invoice.currency ? invoice.currency + " " : "") +
-          Number(invoice.amountTotal || 0).toLocaleString("en-PH", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })
-      ].forEach(function(value) {
-        const cell = document.createElement("td");
-        cell.textContent = value;
-        row.appendChild(cell);
-      });
-      tbody.appendChild(row);
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "refresh-button";
+    next.textContent = "Next →";
+    next.disabled = currentPage >= totalPages || allInvoiceRegisterLoading;
+    next.addEventListener("click", function() {
+      loadAllInvoiceRegister(currentPage + 1);
     });
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-    panel.appendChild(wrapper);
+    controls.appendChild(previous);
+    controls.appendChild(next);
+    pagination.appendChild(pageLabel);
+    pagination.appendChild(controls);
+    panel.appendChild(pagination);
   }
-
 
   /****************************************************
    * LOAD DASHBOARD DATA
