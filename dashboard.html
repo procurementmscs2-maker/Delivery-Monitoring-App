@@ -1745,13 +1745,45 @@
         </div>
         <button type="button" class="refresh-button" id="refreshAllInvoicesButton" onclick="loadAllInvoiceRegister(1)">↻ Refresh</button>
       </div>
-      <div class="delivery-search-toolbar">
+      <div class="delivery-search-toolbar all-invoices-toolbar">
         <div class="delivery-search audit-search">
           <span class="search-icon">⌕</span>
           <input type="search" id="allInvoicesSearch" placeholder="Search invoice, customer, or sales order..." autocomplete="off" oninput="handleAllInvoiceSearch()">
+          <button type="button" class="clear-search" id="clearAllInvoicesSearchButton" onclick="clearAllInvoicesSearch()" aria-label="Clear search" style="display:none;">×</button>
+        </div>
+        <div class="all-invoices-filter-wrap">
+          <button type="button" class="audit-filter-toggle" id="allInvoicesFilterToggle" aria-expanded="false" aria-controls="allInvoicesFilterPanel" onclick="toggleAllInvoicesFilterPanel()">
+            <span aria-hidden="true">☷</span> Filters <span aria-hidden="true">▾</span>
+          </button>
+          <div class="audit-filter-panel all-invoices-filter-panel" id="allInvoicesFilterPanel" hidden>
+            <div class="audit-filter-field">
+              <label for="allInvoicesDateFrom">Invoice Date From</label>
+              <input type="date" id="allInvoicesDateFrom">
+            </div>
+            <div class="audit-filter-field">
+              <label for="allInvoicesDateTo">Invoice Date To</label>
+              <input type="date" id="allInvoicesDateTo">
+            </div>
+            <div class="audit-filter-field">
+              <label for="allInvoicesPaymentStatus">Payment Status</label>
+              <select id="allInvoicesPaymentStatus">
+                <option value="">All Payment Statuses</option>
+                <option value="not_paid">Not Paid</option>
+                <option value="partial">Partially Paid</option>
+                <option value="paid">Paid</option>
+                <option value="in_payment">In Payment</option>
+                <option value="reversed">Reversed</option>
+                <option value="invoicing_legacy">Invoicing Legacy</option>
+              </select>
+            </div>
+            <div class="all-invoices-filter-actions">
+              <button type="button" class="secondary-action-button" onclick="clearAllInvoicesFilters()">Clear</button>
+              <button type="button" class="primary-action-button" onclick="applyAllInvoicesFilters()">Apply Filters</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="blank-subtabs">
+      <div class="blank-subtabs delivery-tabs">
         <button type="button" class="delivery-tab active" id="allInvoicesDeliveryTab" onclick="switchAllInvoicesSubTab('delivery')">Delivery</button>
         <button type="button" class="delivery-tab" id="allInvoicesPickedUpTab" onclick="switchAllInvoicesSubTab('pickedUp')">Picked Up</button>
       </div>
@@ -2755,11 +2787,47 @@
 
 
   function handleAllInvoiceSearch() {
+    const clearButton = document.getElementById("clearAllInvoicesSearchButton");
+    const searchValue = document.getElementById("allInvoicesSearch").value;
+    clearButton.style.display = searchValue ? "inline-flex" : "none";
     if (allInvoiceSearchTimer) clearTimeout(allInvoiceSearchTimer);
     allInvoiceSearchTimer = setTimeout(function() {
       allInvoiceRegisterPage[currentAllInvoicesSubTab] = 1;
       loadAllInvoiceRegister(1);
     }, 400);
+  }
+
+  function clearAllInvoicesSearch() {
+    document.getElementById("allInvoicesSearch").value = "";
+    handleAllInvoiceSearch();
+  }
+
+  function toggleAllInvoicesFilterPanel() {
+    const panel = document.getElementById("allInvoicesFilterPanel");
+    const toggle = document.getElementById("allInvoicesFilterToggle");
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute("aria-expanded", opening ? "true" : "false");
+  }
+
+  function applyAllInvoicesFilters() {
+    const dateFrom = document.getElementById("allInvoicesDateFrom").value;
+    const dateTo = document.getElementById("allInvoicesDateTo").value;
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      alert("Invoice Date From cannot be later than Invoice Date To.");
+      return;
+    }
+    allInvoiceRegisterPage[currentAllInvoicesSubTab] = 1;
+    document.getElementById("allInvoicesFilterPanel").hidden = true;
+    document.getElementById("allInvoicesFilterToggle").setAttribute("aria-expanded", "false");
+    loadAllInvoiceRegister(1);
+  }
+
+  function clearAllInvoicesFilters() {
+    document.getElementById("allInvoicesDateFrom").value = "";
+    document.getElementById("allInvoicesDateTo").value = "";
+    document.getElementById("allInvoicesPaymentStatus").value = "";
+    applyAllInvoicesFilters();
   }
 
 
@@ -2817,7 +2885,12 @@
         deliveryType,
         targetPage,
         100,
-        document.getElementById("allInvoicesSearch").value.trim()
+        document.getElementById("allInvoicesSearch").value.trim(),
+        {
+          dateFrom: document.getElementById("allInvoicesDateFrom").value,
+          dateTo: document.getElementById("allInvoicesDateTo").value,
+          paymentStatus: document.getElementById("allInvoicesPaymentStatus").value
+        }
       );
   }
 
