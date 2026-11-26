@@ -387,14 +387,32 @@
   }
 
   .helper-checkbox-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    display: block;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+  }
+
+  /* Search stays on top; selectable names appear in a separate list below. */
+  .helper-checkbox-list > .assignment-list-search {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 8px;
+  }
+
+  .helper-checkbox-list > .assignment-option-list {
+    display: block;
+    width: 100%;
     max-height: 190px;
+    box-sizing: border-box;
     overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
+    background: #fff;
   }
 
   .helper-checkbox-item {
