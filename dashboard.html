@@ -1455,11 +1455,11 @@
     <!-- MAIN NAVIGATION -->
     <div class="audit-navigation">
       <button type="button" class="delivery-tab active" id="recordsMainTab" onclick="switchMainView('records')">Delivery Records</button>
-      <button type="button" class="delivery-tab" id="allTripsMainTab" onclick="switchMainView('allTrips')">ALL TRIP <span class="tab-count" id="allTripsCount">0</span></button>
+      <button type="button" class="delivery-tab" id="allTripsMainTab" onclick="switchMainView('allTrips')">ALL TRIP</button>
       <button type="button" class="delivery-tab" id="allInvoicesMainTab" onclick="switchMainView('allInvoices')">All Invoices</button>
       <button type="button" class="delivery-tab" id="pullOutMainTab" onclick="switchMainView('pullOut')">Pull-Out</button>
       <button type="button" class="delivery-tab" id="toFollowMainTab" onclick="switchMainView('toFollow')">To Follow</button>
-      <button type="button" class="delivery-tab" id="auditMainTab" onclick="switchMainView('audit')">Audit Logs <span class="tab-count" id="auditCount">0</span></button>
+      <button type="button" class="delivery-tab" id="auditMainTab" onclick="switchMainView('audit')">Audit Logs</button>
     </div>
 
     <!-- EMPTY PLACEHOLDER SECTIONS: FUNCTIONS TO BE DEFINED LATER -->
@@ -2708,8 +2708,6 @@
       groups.get(tripId).push(record);
     });
     const tripIds = Array.from(groups.keys()).sort(function(a,b) { return b.localeCompare(a, undefined, {numeric:true,sensitivity:"base"}); });
-    const count = document.getElementById("allTripsCount");
-    if (count) count.textContent = String(tripIds.length);
     const description = document.getElementById("allTripsDescription");
     if (description) description.textContent = tripIds.length + (tripIds.length === 1 ? " trip recorded" : " trips recorded") + " • Includes ongoing and finished trips";
     list.replaceChildren();
@@ -5166,8 +5164,6 @@ function getAllowedStatusCorrections(record) {
         auditLogsData = Array.isArray(result.logs) ? result.logs : [];
         auditLogsLoaded = true;
 
-        document.getElementById("auditCount").textContent =
-          result.totalCount ?? auditLogsData.length;
 
         populateAuditUserFilter();
         renderAuditLogs();
@@ -5442,7 +5438,6 @@ function getAllowedStatusCorrections(record) {
         document.getElementById("auditActionFilter").value = "";
         document.getElementById("auditUserFilter").replaceChildren();
         document.getElementById("auditDateFilter").value = "";
-        document.getElementById("auditCount").textContent = "0";
       })
       .withFailureHandler(function() {
         alert("Logout failed. Please reload the page.");
