@@ -1072,6 +1072,42 @@
   }
   #dashboardView .blank-subpanel { min-height: 0; }
 
+  #dashboardView .all-invoices-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+  #dashboardView .all-invoices-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+  }
+  #dashboardView .all-invoices-table th,
+  #dashboardView .all-invoices-table td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  #dashboardView .all-invoices-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 10px;
+    letter-spacing: .04em;
+  }
+  #dashboardView .all-invoices-table tr:last-child td { border-bottom: 0; }
+  #dashboardView .all-invoices-empty {
+    padding: 24px;
+    text-align: center;
+    color: #64748b;
+    background: #f8fafc;
+    border-radius: 10px;
+  }
+
+
   /* Keep all main tabs in one horizontal row. On narrow screens,
      allow horizontal scrolling rather than wrapping into vertical rows. */
   #dashboardView .audit-navigation {
@@ -1701,6 +1737,20 @@
     </section>
 
     <section id="allInvoicesSection" class="blank-main-section" style="display:none;">
+      <div class="delivery-heading">
+        <div>
+          <p class="eyebrow">ACCOUNTING</p>
+          <h3>All Invoices</h3>
+          <p class="delivery-count" id="allInvoicesCount">Loading invoice count...</p>
+        </div>
+        <button type="button" class="refresh-button" id="refreshAllInvoicesButton" onclick="loadAllInvoiceRegister()">↻ Refresh</button>
+      </div>
+      <div class="delivery-search-toolbar">
+        <div class="delivery-search audit-search">
+          <span class="search-icon">⌕</span>
+          <input type="search" id="allInvoicesSearch" placeholder="Search invoice, customer, or sales order..." autocomplete="off" oninput="renderAllInvoiceRegister()">
+        </div>
+      </div>
       <div class="blank-subtabs">
         <button type="button" class="delivery-tab active" id="allInvoicesDeliveryTab" onclick="switchAllInvoicesSubTab('delivery')">Delivery</button>
         <button type="button" class="delivery-tab" id="allInvoicesPickedUpTab" onclick="switchAllInvoicesSubTab('pickedUp')">Picked Up</button>
@@ -2509,6 +2559,10 @@
   let deliveryAssignmentHelpers = [];
 
   let selectedInvoiceIds = new Set();
+  let allInvoiceRegisterData = { deliveryInvoices: [], pickedUpInvoices: [] };
+  let allInvoiceRegisterLoaded = false;
+  let allInvoiceRegisterLoading = false;
+  let currentAllInvoicesSubTab = "delivery";
   let currentTripAction = "NEW_TRIP";
   let currentEditTripId = "";
   let currentEditTripRecords = [];
@@ -2672,14 +2726,153 @@
 
     if (view === "audit") loadAuditLogs();
     if (view === "allTrips") renderAllTrips();
+    if (view === "allInvoices") {
+      if (!allInvoiceRegisterLoaded) loadAllInvoiceRegister();
+      else renderAllInvoiceRegister();
+    }
   }
 
   function switchAllInvoicesSubTab(tab) {
-    const showDelivery = tab === "delivery";
+    currentAllInvoicesSubTab = tab === "pickedUp" ? "pickedUp" : "delivery";
+    const showDelivery = currentAllInvoicesSubTab === "delivery";
     document.getElementById("allInvoicesDeliveryPanel").style.display = showDelivery ? "block" : "none";
     document.getElementById("allInvoicesPickedUpPanel").style.display = showDelivery ? "none" : "block";
     document.getElementById("allInvoicesDeliveryTab").classList.toggle("active", showDelivery);
     document.getElementById("allInvoicesPickedUpTab").classList.toggle("active", !showDelivery);
+    renderAllInvoiceRegister();
+  }
+
+
+  function loadAllInvoiceRegister() {
+    if (!currentSessionToken || allInvoiceRegisterLoading) return;
+
+    allInvoiceRegisterLoading = true;
+    const button = document.getElementById("refreshAllInvoicesButton");
+    const count = document.getElementById("allInvoicesCount");
+    const deliveryPanel = document.getElementById("allInvoicesDeliveryPanel");
+    const pickedUpPanel = document.getElementById("allInvoicesPickedUpPanel");
+
+    button.disabled = true;
+    button.textContent = "Loading...";
+    count.textContent = "Retrieving posted customer invoices from Odoo...";
+    deliveryPanel.innerHTML = '<div class="all-invoices-empty">Loading Delivery invoices...</div>';
+    pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Loading Picked Up invoices...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        allInvoiceRegisterLoading = false;
+        button.disabled = false;
+        button.textContent = "↻ Refresh";
+
+        if (!result || !result.success) {
+          allInvoiceRegisterLoaded = false;
+          count.textContent = "Unable to retrieve invoices.";
+          deliveryPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Delivery invoices.</div>';
+          pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Picked Up invoices.</div>';
+          return;
+        }
+
+        allInvoiceRegisterData = {
+          deliveryInvoices: result.deliveryInvoices || [],
+          pickedUpInvoices: result.pickedUpInvoices || []
+        };
+        allInvoiceRegisterLoaded = true;
+        renderAllInvoiceRegister();
+      })
+      .withFailureHandler(function(error) {
+        allInvoiceRegisterLoading = false;
+        allInvoiceRegisterLoaded = false;
+        button.disabled = false;
+        button.textContent = "↻ Refresh";
+        count.textContent = error.message || "Unable to retrieve invoices.";
+        deliveryPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Delivery invoices.</div>';
+        pickedUpPanel.innerHTML = '<div class="all-invoices-empty">Unable to retrieve Picked Up invoices.</div>';
+      })
+      .getAllInvoiceRegisterData(currentSessionToken);
+  }
+
+
+  function renderAllInvoiceRegister() {
+    if (!allInvoiceRegisterLoaded) return;
+
+    const isPickedUp = currentAllInvoicesSubTab === "pickedUp";
+    const invoices = isPickedUp
+      ? allInvoiceRegisterData.pickedUpInvoices
+      : allInvoiceRegisterData.deliveryInvoices;
+    const panel = document.getElementById(
+      isPickedUp ? "allInvoicesPickedUpPanel" : "allInvoicesDeliveryPanel"
+    );
+    const search = String(document.getElementById("allInvoicesSearch").value || "")
+      .trim().toLowerCase();
+
+    const filtered = invoices.filter(function(invoice) {
+      const searchable = [
+        invoice.invoiceNumber,
+        invoice.customerName,
+        invoice.salesOrderNumber,
+        invoice.invoiceDate,
+        invoice.paymentStatus
+      ].join(" ").toLowerCase();
+      return !search || searchable.includes(search);
+    });
+
+    const total = allInvoiceRegisterData.deliveryInvoices.length +
+      allInvoiceRegisterData.pickedUpInvoices.length;
+    document.getElementById("allInvoicesCount").textContent =
+      "Showing " + filtered.length + " of " + invoices.length +
+      " " + (isPickedUp ? "Picked Up" : "Delivery") +
+      " invoices · " + total + " invoices overall";
+
+    panel.replaceChildren();
+
+    if (!filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "all-invoices-empty";
+      empty.textContent = search
+        ? "No invoices match your search."
+        : "No " + (isPickedUp ? "Picked Up" : "Delivery") + " invoices found.";
+      panel.appendChild(empty);
+      return;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "all-invoices-table-wrap";
+    const table = document.createElement("table");
+    table.className = "all-invoices-table";
+    const thead = document.createElement("thead");
+    const header = document.createElement("tr");
+    ["INVOICE NUMBER", "INVOICE DATE", "CUSTOMER", "SALES ORDER", "PAYMENT STATUS", "TOTAL"].forEach(function(label) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      header.appendChild(th);
+    });
+    thead.appendChild(header);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    filtered.forEach(function(invoice) {
+      const row = document.createElement("tr");
+      [
+        invoice.invoiceNumber || "-",
+        invoice.invoiceDate || "-",
+        invoice.customerName || "-",
+        invoice.salesOrderNumber || "-",
+        String(invoice.paymentStatus || "").replace(/_/g, " ").toUpperCase() || "-",
+        (invoice.currency ? invoice.currency + " " : "") +
+          Number(invoice.amountTotal || 0).toLocaleString("en-PH", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+      ].forEach(function(value) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    panel.appendChild(wrapper);
   }
 
 
