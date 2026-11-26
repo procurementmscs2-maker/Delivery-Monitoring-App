@@ -453,7 +453,19 @@ function getDeliveryDashboardData(token) {
   const driverRecords = odooSearchReadAll_(connection, "x_delivery_drivers", [],
     ["id", "x_name"], "id asc");
   const driverMap = {};
-  driverRecords.forEach(item => { driverMap[Number(item.id)] = item.x_name || "Unknown Driver"; });
+  const driverIdByName = {};
+  driverRecords.forEach(item => {
+    const name = item.x_name || "Unknown Driver";
+    driverMap[Number(item.id)] = name;
+    driverIdByName[name.trim().toLowerCase()] = Number(item.id);
+  });
+
+  const truckRecords = odooSearchReadAll_(connection, "x_delivery_trucks", [],
+    ["id", "x_name"], "id asc");
+  const truckIdByName = {};
+  truckRecords.forEach(item => {
+    truckIdByName[String(item.x_name || "").trim().toLowerCase()] = Number(item.id);
+  });
 
   const records = odooSearchReadAll_(
     connection,
@@ -550,12 +562,21 @@ function getDeliveryDashboardData(token) {
       helperMap
     );
 
-    const driverIds = (record.x_studio_drivers || []).map(Number);
-    const driverNames = driverIds.map(function(id) {
-      return driverMap[id] || "Unknown Driver";
-    });
+    let driverIds = (record.x_studio_drivers || []).map(Number);
     const legacyDriverName = odooGetRelationName_(record.x_studio_driver);
-    if (!driverNames.length && legacyDriverName) driverNames.push(legacyDriverName);
+    if (!driverIds.length && legacyDriverName) {
+      const legacyDriverId = driverIdByName[String(legacyDriverName).trim().toLowerCase()];
+      if (legacyDriverId) driverIds = [legacyDriverId];
+    }
+    const driverNames = driverIds.length
+      ? driverIds.map(id => driverMap[id] || "Unknown Driver")
+      : (legacyDriverName ? [legacyDriverName] : []);
+
+    const truckRelationId = Array.isArray(record.x_studio_truck_1)
+      ? Number(record.x_studio_truck_1[0]) : null;
+    const legacyTruckName = String(record.x_studio_truck || "").trim();
+    const truckId = truckRelationId ||
+      truckIdByName[legacyTruckName.toLowerCase()] || null;
 
     const delivery = {
       id: record.id,
@@ -572,8 +593,8 @@ function getDeliveryDashboardData(token) {
       driverIds: driverIds,
       helperNames: helperNames,
       helperIds: helperIds,
-      truck: odooGetRelationName_(record.x_studio_truck_1) || record.x_studio_truck || "",
-      truckId: Array.isArray(record.x_studio_truck_1) ? Number(record.x_studio_truck_1[0]) : null,
+      truck: odooGetRelationName_(record.x_studio_truck_1) || legacyTruckName,
+      truckId: truckId,
       tripId: record.x_studio_trip_id || "",
       // True while another invoice in this trip is still an unfinished stop:
       // IN TRANSIT, or ARRIVED but awaiting its delivery result.
