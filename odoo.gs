@@ -1813,8 +1813,8 @@ function updateDeliveryTrip(token, tripId, changes, reason) {
         "x_name",
         "x_studio_delivery_date",
         "x_studio_area",
-        "x_studio_truck",
-        "x_studio_driver",
+        "x_studio_truck_1",
+        "x_studio_drivers",
         "x_studio_helper_1",
         "x_studio_trip_id",
         "x_studio_status"
@@ -1857,24 +1857,39 @@ function updateDeliveryTrip(token, tripId, changes, reason) {
       sharedFields.x_studio_delivery_date = date;
     }
 
-    if (Object.prototype.hasOwnProperty.call(changes, "truck")) {
-      const truck = String(changes.truck || "").trim();
+    const activeTrucks = odooSearchReadAll_(
+      connection, "x_delivery_trucks",
+      [["x_active", "=", true]], ["id", "x_name"], "x_name asc"
+    );
+    const activeTruckMap = {};
+    activeTrucks.forEach(item => { activeTruckMap[Number(item.id)] = item.x_name || "Unnamed Truck"; });
 
-      if (!truck) {
-        throw new Error("Truck is required.");
+    const activeDrivers = odooSearchReadAll_(
+      connection, "x_delivery_drivers",
+      [["x_active", "=", true]], ["id", "x_name"], "x_name asc"
+    );
+    const activeDriverMap = {};
+    activeDrivers.forEach(item => { activeDriverMap[Number(item.id)] = item.x_name || "Unnamed Driver"; });
+
+    if (Object.prototype.hasOwnProperty.call(changes, "truckId")) {
+      const truckId = Number(changes.truckId);
+      if (!Number.isInteger(truckId) || truckId <= 0 || !activeTruckMap[truckId]) {
+        throw new Error("The selected truck is invalid or inactive.");
       }
-
-      sharedFields.x_studio_truck = truck;
+      sharedFields.x_studio_truck_1 = truckId;
     }
 
-    if (Object.prototype.hasOwnProperty.call(changes, "driver")) {
-      const driver = String(changes.driver || "").trim();
-
-      if (!driver) {
-        throw new Error("Driver is required.");
+    if (Object.prototype.hasOwnProperty.call(changes, "driverIds")) {
+      if (!Array.isArray(changes.driverIds) || !changes.driverIds.length) {
+        throw new Error("Select at least one driver.");
       }
-
-      sharedFields.x_studio_driver = driver;
+      const driverIds = [...new Set(changes.driverIds.map(Number))];
+      driverIds.forEach(id => {
+        if (!Number.isInteger(id) || id <= 0 || !activeDriverMap[id]) {
+          throw new Error("A selected driver is invalid or inactive.");
+        }
+      });
+      sharedFields.x_studio_drivers = [[6, 0, driverIds]];
     }
 
     let newHelperIds = null;
@@ -2028,44 +2043,30 @@ function updateDeliveryTrip(token, tripId, changes, reason) {
         }
       }
 
-      // Shared truck.
-      if (
-        Object.prototype.hasOwnProperty.call(
-          sharedFields,
-          "x_studio_truck"
-        )
-      ) {
-        const oldValue = record.x_studio_truck || "";
-        const newValue = sharedFields.x_studio_truck;
-
-        if (String(oldValue) !== String(newValue)) {
-          updateValues.x_studio_truck = newValue;
-          rollbackValues.x_studio_truck =
-            record.x_studio_truck || false;
-
-          addAudit(record, "Truck", oldValue, newValue);
+      // Shared truck (Many2one).
+      if (Object.prototype.hasOwnProperty.call(sharedFields, "x_studio_truck_1")) {
+        const oldId = Array.isArray(record.x_studio_truck_1) ? Number(record.x_studio_truck_1[0]) : false;
+        const newId = sharedFields.x_studio_truck_1;
+        if (oldId !== newId) {
+          updateValues.x_studio_truck_1 = newId;
+          rollbackValues.x_studio_truck_1 = oldId || false;
+          const oldName = Array.isArray(record.x_studio_truck_1) ? record.x_studio_truck_1[1] : "";
+          addAudit(record, "Truck", oldName || "", activeTruckMap[newId] || "");
         }
       }
 
-      // Shared driver.
-      if (
-        Object.prototype.hasOwnProperty.call(
-          sharedFields,
-          "x_studio_driver"
-        )
-      ) {
-        const oldValue = odooGetRelationName_(
-          record.x_studio_driver
-        );
-
-        const newValue = sharedFields.x_studio_driver;
-
-        if (String(oldValue).trim() !== newValue) {
-          updateValues.x_studio_driver = newValue;
-          rollbackValues.x_studio_driver =
-            record.x_studio_driver || false;
-
-          addAudit(record, "Driver", oldValue, newValue);
+      // Shared drivers (Many2many).
+      if (Object.prototype.hasOwnProperty.call(sharedFields, "x_studio_drivers")) {
+        const newIds = sharedFields.x_studio_drivers[0][2];
+        const oldIds = (record.x_studio_drivers || []).map(Number);
+        const oldSorted = oldIds.slice().sort((a,b)=>a-b);
+        const newSorted = newIds.slice().sort((a,b)=>a-b);
+        if (JSON.stringify(oldSorted) !== JSON.stringify(newSorted)) {
+          updateValues.x_studio_drivers = [[6, 0, newIds]];
+          rollbackValues.x_studio_drivers = [[6, 0, oldIds]];
+          const oldNames = oldIds.map(id => activeDriverMap[id] || "Inactive Driver #" + id).join(", ");
+          const newNames = newIds.map(id => activeDriverMap[id]).join(", ");
+          addAudit(record, "Driver(s)", oldNames, newNames);
         }
       }
 
