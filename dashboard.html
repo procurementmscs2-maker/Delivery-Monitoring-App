@@ -1024,6 +1024,65 @@
     background: #e2edff;
   }
 
+  #dashboardView .audit-clickable-row {
+    cursor: pointer;
+  }
+  #dashboardView .audit-clickable-row:hover {
+    background: #f1f5f9;
+  }
+  #dashboardView .audit-clickable-row:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+  }
+  #dashboardView .audit-detail-modal-content {
+    max-width: 760px;
+  }
+  #dashboardView .audit-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  #dashboardView .audit-detail-item {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+  #dashboardView .audit-detail-item.audit-detail-wide {
+    grid-column: 1 / -1;
+  }
+  #dashboardView .audit-detail-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  #dashboardView .audit-detail-value {
+    display: block;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  #dashboardView .audit-detail-modal .trip-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+  }
+  @media (max-width: 600px) {
+    #dashboardView .audit-detail-grid {
+      grid-template-columns: 1fr;
+    }
+    #dashboardView .audit-detail-item.audit-detail-wide {
+      grid-column: auto;
+    }
+  }
+
   #dashboardView .delivery-table thead th {
     position: sticky;
     top: 0;
@@ -1733,7 +1792,7 @@
       <div class="table-wrapper audit-table-wrapper">
         <table class="delivery-table audit-table">
           <thead>
-            <tr>
+            <tr id="auditTableHeaderRow">
               <th>TIMESTAMP</th>
               <th>INVOICE</th>
               <th>ACTION</th>
@@ -1764,6 +1823,24 @@
       <p id="auditMessage" class="trip-message"></p>
 
     </main>
+
+    <!-- CUSTOM AUDIT LOG DETAILS POPUP -->
+    <div class="trip-modal audit-detail-modal" id="auditDetailModal" onclick="if(event.target === this) closeAuditDetailModal()">
+      <div class="trip-modal-content audit-detail-modal-content" role="dialog" aria-modal="true" aria-labelledby="auditDetailTitle">
+        <div class="trip-modal-header">
+          <div>
+            <p class="eyebrow">AUDIT HISTORY</p>
+            <h3 id="auditDetailTitle">Audit Log Details</h3>
+            <p class="assignment-help-text">Complete details of this audit entry.</p>
+          </div>
+          <button type="button" class="close-modal-button" onclick="closeAuditDetailModal()" aria-label="Close">&times;</button>
+        </div>
+        <div class="audit-detail-grid" id="auditDetailGrid"></div>
+        <div class="trip-modal-actions">
+          <button type="button" class="secondary-action-button" onclick="closeAuditDetailModal()">Close</button>
+        </div>
+      </div>
+    </div>
 
     <footer class="dashboard-footer">
       Delivery Monitoring System
@@ -2252,6 +2329,7 @@
     currentSessionToken = token;
     currentUserRole = user.role || "";
     document.body.classList.toggle("helper-view", String(currentUserRole).trim().toUpperCase() === "HELPER");
+    configureAuditTableColumns();
 
     document.getElementById("loginView").style.display = "none";
     document.getElementById("dashboardView").style.display = "block";
@@ -5112,6 +5190,69 @@ function getAllowedStatusCorrections(record) {
    * AUDIT LOGS
    ****************************************************/
 
+  function configureAuditTableColumns() {
+    const headerRow = document.getElementById("auditTableHeaderRow");
+    if (!headerRow) return;
+
+    const headers = isHelperAccount()
+      ? ["TIMESTAMP", "INVOICE", "ACTION", "FIELD", "OLD VALUE", "NEW VALUE", "REASON / JUSTIFICATION", "USER", "ROLE", "TRANSACTION ID"]
+      : ["TIMESTAMP", "INVOICE", "FIELD", "OLD VALUE", "NEW VALUE", "USER"];
+
+    headerRow.replaceChildren();
+    headers.forEach(function(label) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headerRow.appendChild(th);
+    });
+  }
+
+
+  function openAuditDetailModal(log) {
+    if (!log || isHelperAccount()) return;
+
+    const fields = [
+      ["Timestamp", formatAuditTimestamp(log.timestamp), false],
+      ["Invoice", log.invoiceNumber, false],
+      ["Action", log.action, false],
+      ["Field", log.field, false],
+      ["Old Value", log.oldValue, true],
+      ["New Value", log.newValue, true],
+      ["Reason / Justification", log.reason, true],
+      ["User", log.user, false],
+      ["Role", log.userRole, false],
+      ["Transaction ID", log.transactionId, true]
+    ];
+
+    const grid = document.getElementById("auditDetailGrid");
+    grid.replaceChildren();
+
+    fields.forEach(function(field) {
+      const item = document.createElement("div");
+      item.className = "audit-detail-item" + (field[2] ? " audit-detail-wide" : "");
+
+      const label = document.createElement("span");
+      label.className = "audit-detail-label";
+      label.textContent = field[0];
+
+      const value = document.createElement("span");
+      value.className = "audit-detail-value";
+      value.textContent = field[1] == null || field[1] === "" ? "-" : String(field[1]);
+
+      item.appendChild(label);
+      item.appendChild(value);
+      grid.appendChild(item);
+    });
+
+    document.getElementById("auditDetailModal").classList.add("show");
+  }
+
+
+  function closeAuditDetailModal() {
+    const modal = document.getElementById("auditDetailModal");
+    if (modal) modal.classList.remove("show");
+  }
+
+
   function loadAuditLogs() {
     if (!currentSessionToken || auditLogsLoading) return;
 
@@ -5132,7 +5273,7 @@ function getAllowedStatusCorrections(record) {
     const loadingRow = document.createElement("tr");
     const loadingCell = document.createElement("td");
 
-    loadingCell.colSpan = 10;
+    loadingCell.colSpan = isHelperAccount() ? 10 : 6;
     loadingCell.className = "loading-message";
     loadingCell.textContent = "Retrieving audit history from Odoo...";
 
@@ -5154,7 +5295,7 @@ function getAllowedStatusCorrections(record) {
           const errorRow = document.createElement("tr");
           const errorCell = document.createElement("td");
 
-          errorCell.colSpan = 10;
+          errorCell.colSpan = isHelperAccount() ? 10 : 6;
           errorCell.className = "audit-error";
           errorCell.textContent =
             result && result.message
@@ -5185,7 +5326,7 @@ function getAllowedStatusCorrections(record) {
         const errorRow = document.createElement("tr");
         const errorCell = document.createElement("td");
 
-        errorCell.colSpan = 10;
+        errorCell.colSpan = isHelperAccount() ? 10 : 6;
         errorCell.className = "audit-error";
         errorCell.textContent =
           error.message || "Unable to retrieve audit logs.";
@@ -5299,30 +5440,49 @@ function getAllowedStatusCorrections(record) {
       appendAuditCell(row, formatAuditTimestamp(log.timestamp));
       appendAuditCell(row, log.invoiceNumber || "-");
 
-      const actionCell = document.createElement("td");
-      const badge = document.createElement("span");
+      if (!isHelperAccount()) {
+        appendAuditCell(row, log.field || "-");
+        appendAuditCell(row, log.oldValue || "-", "audit-value");
+        appendAuditCell(row, log.newValue || "-", "audit-value");
+        appendAuditCell(row, log.user || "-", "audit-user");
 
-      badge.className = "audit-action-badge";
+        row.classList.add("audit-clickable-row");
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.setAttribute("aria-label", "View full audit details for invoice " + (log.invoiceNumber || "record"));
+        row.addEventListener("click", function() {
+          openAuditDetailModal(log);
+        });
+        row.addEventListener("keydown", function(event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openAuditDetailModal(log);
+          }
+        });
+      } else {
+        const actionCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = "audit-action-badge";
+        const action = String(log.action || "UNKNOWN").toUpperCase();
 
-      const action = String(log.action || "UNKNOWN").toUpperCase();
+        if (action === "STATUS UPDATE") {
+          badge.classList.add("status-update");
+        } else if (action === "DELETE" || action === "PHOTO DELETE") {
+          badge.classList.add("delete");
+        }
 
-      if (action === "STATUS UPDATE") {
-        badge.classList.add("status-update");
-      } else if (action === "DELETE" || action === "PHOTO DELETE") {
-        badge.classList.add("delete");
+        badge.textContent = log.action || "UNKNOWN";
+        actionCell.appendChild(badge);
+        row.appendChild(actionCell);
+
+        appendAuditCell(row, log.field || "-");
+        appendAuditCell(row, log.oldValue || "-", "audit-value");
+        appendAuditCell(row, log.newValue || "-", "audit-value");
+        appendAuditCell(row, log.reason || "-", "audit-reason");
+        appendAuditCell(row, log.user || "-", "audit-user");
+        appendAuditCell(row, log.userRole || "-");
+        appendAuditCell(row, log.transactionId || "-");
       }
-
-      badge.textContent = log.action || "UNKNOWN";
-      actionCell.appendChild(badge);
-      row.appendChild(actionCell);
-
-      appendAuditCell(row, log.field || "-");
-      appendAuditCell(row, log.oldValue || "-", "audit-value");
-      appendAuditCell(row, log.newValue || "-", "audit-value");
-      appendAuditCell(row, log.reason || "-", "audit-reason");
-      appendAuditCell(row, log.user || "-", "audit-user");
-      appendAuditCell(row, log.userRole || "-");
-      appendAuditCell(row, log.transactionId || "-");
 
       tbody.appendChild(row);
     });
