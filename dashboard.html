@@ -3,6 +3,18 @@
 <?!= include('DashboardStyles'); ?>
 
 <style>
+  /* AUDIT LOG SEARCH: keep a single border on the outer search container */
+  .audit-search input,
+  .audit-search input[type="search"],
+  .audit-search input[type="search"]:focus {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
   .status-edit-button.icon-only {
     width: 32px;
     height: 32px;
