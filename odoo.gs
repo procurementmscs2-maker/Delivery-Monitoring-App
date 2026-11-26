@@ -1032,19 +1032,20 @@ function saveDeliveryAssignment(token, recordId, changes, reason) {
 
   if (Object.prototype.hasOwnProperty.call(changes, "truckId")) {
     const raw = changes.truckId === "" || changes.truckId == null ? false : Number(changes.truckId);
+    let newTruckName = "";
     if (raw !== false) {
       if (!Number.isInteger(raw) || raw <= 0) throw new Error("Invalid truck selection.");
       const active = odooSearchReadAll_(connection, "x_delivery_trucks",
         [["id", "=", raw], ["x_active", "=", true]], ["id", "x_name"], "id asc");
       if (!active.length) throw new Error("The selected truck is inactive or does not exist.");
+      newTruckName = active[0].x_name || "";
     }
     const oldId = Array.isArray(record.x_studio_truck_1) ? Number(record.x_studio_truck_1[0]) : false;
     if (oldId !== raw) {
       updateValues.x_studio_truck_1 = raw;
       rollbackValues.x_studio_truck_1 = oldId || false;
       const oldName = Array.isArray(record.x_studio_truck_1) ? record.x_studio_truck_1[1] : "";
-      const newName = raw ? active[0].x_name : "";
-      auditChanges.push({field:"Truck", oldValue:oldName || "", newValue:newName || ""});
+      auditChanges.push({field:"Truck", oldValue:oldName || "", newValue:newTruckName});
     }
   }
 
