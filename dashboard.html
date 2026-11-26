@@ -519,6 +519,28 @@
     margin: 0;
   }
 
+  /* Match the Audit Logs pill-shaped search field */
+  .delivery-search-toolbar > .audit-search {
+    min-height: 46px;
+    box-sizing: border-box;
+    border-radius: 999px;
+  }
+
+  /* Match Audit Logs filter control borders and spacing */
+  .concern-filter-panel select,
+  .concern-filter-panel input {
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    box-sizing: border-box;
+    padding: 11px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+  }
+
   .concern-filter-menu-wrap {
     position: relative;
     flex: 0 0 auto;
@@ -1740,7 +1762,7 @@
 
       <!-- SEARCH AND CONCERN FILTERS -->
       <div class="delivery-search-toolbar">
-        <div class="delivery-search">
+        <div class="delivery-search audit-search">
           <span class="search-icon">⌕</span>
           <input
             type="search"
