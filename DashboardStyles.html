@@ -1079,6 +1079,12 @@
     padding: 8px 7px;
     white-space: normal;
   }
+
+  /* Keep invoice details close to the left; preserve status and edit alignment. */
+  .delivery-table.ongoing-compact-table th:not(:nth-last-child(-n+2)),
+  .delivery-table.ongoing-compact-table td:not(:nth-last-child(-n+2)) {
+    text-align: left;
+  }
   .delivery-table.ongoing-compact-table th {
     font-size: 9px;
     letter-spacing: .2px;
