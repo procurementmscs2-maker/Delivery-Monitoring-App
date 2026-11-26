@@ -682,6 +682,87 @@ function getDeliveryDashboardData(token) {
 
 
 /****************************************************
+ * ALL CUSTOMER INVOICES
+ ****************************************************/
+
+/**
+ * Retrieve posted Customer Invoices from Accounting for the
+ * All Invoices page. This is separate from Delivery Records:
+ * PICKED UP invoices are visible here but are not added to NEW.
+ */
+function getAllInvoiceRegisterData(token) {
+  const sessionUser = getSessionUser(token);
+
+  if (!sessionUser) {
+    throw new Error("Your session has expired. Please log in again.");
+  }
+
+  const role = String(sessionUser.role || "").trim().toUpperCase();
+
+  if (!["ADMIN", "MANAGER", "ENCODER"].includes(role)) {
+    throw new Error("You are not authorized to view all invoices.");
+  }
+
+  const connection = odooGetConnection_();
+  const invoices = odooSearchReadAll_(
+    connection,
+    "account.move",
+    [
+      ["move_type", "=", "out_invoice"],
+      ["state", "=", "posted"]
+    ],
+    [
+      "id",
+      "name",
+      "invoice_date",
+      "partner_id",
+      "invoice_origin",
+      "x_studio_delivery_type",
+      "amount_total",
+      "currency_id",
+      "payment_state"
+    ],
+    "invoice_date desc, id desc"
+  );
+
+  const deliveryInvoices = [];
+  const pickedUpInvoices = [];
+
+  invoices.forEach(function(invoice) {
+    const rawType = String(invoice.x_studio_delivery_type || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[_-]+/g, " ");
+
+    const item = {
+      id: Number(invoice.id),
+      invoiceNumber: invoice.name || "",
+      invoiceDate: invoice.invoice_date || "",
+      customerName: odooGetRelationName_(invoice.partner_id),
+      salesOrderNumber: invoice.invoice_origin || "",
+      deliveryType: String(invoice.x_studio_delivery_type || ""),
+      amountTotal: Number(invoice.amount_total || 0),
+      currency: odooGetRelationName_(invoice.currency_id),
+      paymentStatus: String(invoice.payment_state || "")
+    };
+
+    if (rawType === "DELIVERY") {
+      deliveryInvoices.push(item);
+    } else if (rawType === "PICKED UP") {
+      pickedUpInvoices.push(item);
+    }
+  });
+
+  return {
+    success: true,
+    deliveryInvoices: deliveryInvoices,
+    pickedUpInvoices: pickedUpInvoices,
+    totalCount: deliveryInvoices.length + pickedUpInvoices.length
+  };
+}
+
+
+/****************************************************
  * DELIVERY ASSIGNMENT OPTIONS
  ****************************************************/
 
