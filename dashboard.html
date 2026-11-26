@@ -2527,6 +2527,48 @@
     );
 
     const tableWrapper = deliverySection.querySelector(".table-wrapper");
+    const deliveryTable = tableBody.closest("table");
+
+    // Ongoing trip view changes the shared table's columns and compact styling.
+    // Restore the standard invoice-table structure before rendering any tab so
+    // switching to New, Finished, or With Concerns cannot inherit that layout.
+    if (deliveryTable) {
+      deliveryTable.classList.remove("ongoing-compact-table");
+      const headerRow = deliveryTable.querySelector("thead tr");
+      if (headerRow) {
+        headerRow.replaceChildren();
+
+        const selectionHeader = document.createElement("th");
+        selectionHeader.id = "selectionHeader";
+        selectionHeader.textContent = "SELECT";
+        selectionHeader.style.display = "none";
+        headerRow.appendChild(selectionHeader);
+
+        [
+          "INVOICE NUMBER",
+          "SALES ORDER",
+          "CUSTOMER",
+          "SALES REPRESENTATIVE",
+          "DELIVERY DATE",
+          "AREA",
+          "DRIVER",
+          "HELPER(S)",
+          "TRUCK",
+          "STATUS"
+        ].forEach(function(label) {
+          const th = document.createElement("th");
+          th.textContent = label;
+          headerRow.appendChild(th);
+        });
+
+        const actionHeader = document.createElement("th");
+        actionHeader.id = "assignmentActionHeader";
+        actionHeader.textContent = "ACTION";
+        actionHeader.style.display =
+          (canEditAssignments() || isHelperAccount()) ? "" : "none";
+        headerRow.appendChild(actionHeader);
+      }
+    }
 
     cardList.style.display = "";
     if (tableWrapper) {
