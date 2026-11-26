@@ -505,6 +505,43 @@
     margin: 18px 0;
   }
 
+  .delivery-search-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 18px 0;
+  }
+
+  .delivery-search-toolbar > .delivery-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .concern-filter-menu-wrap {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .concern-filter-toggle {
+    min-height: 46px;
+  }
+
+  .concern-filter-panel {
+    width: min(340px, calc(100vw - 40px));
+  }
+
+  @media(max-width: 500px) {
+    .delivery-search-toolbar {
+      gap: 8px;
+    }
+
+    .concern-filter-toggle {
+      padding: 0 13px;
+    }
+  }
+
   .audit-filter-menu-wrap {
     position: relative;
     justify-self: end;
@@ -1701,24 +1738,73 @@
 
       </div>
 
-      <!-- SEARCH -->
-      <div class="delivery-search">
-        <span class="search-icon">⌕</span>
-        <input
-          type="search"
-          id="deliverySearch"
-          placeholder="Search invoice, customer, sales order, trip ID..."
-          autocomplete="off"
-          oninput="renderDeliveryTable()"
-        >
-        <button
-          type="button"
-          class="clear-search"
-          id="clearSearchButton"
-          onclick="clearDeliverySearch()"
-          aria-label="Clear search"
-          style="display:none;"
-        >×</button>
+      <!-- SEARCH AND CONCERN FILTERS -->
+      <div class="delivery-search-toolbar">
+        <div class="delivery-search">
+          <span class="search-icon">⌕</span>
+          <input
+            type="search"
+            id="deliverySearch"
+            placeholder="Search invoice, customer, sales order, trip ID..."
+            autocomplete="off"
+            oninput="renderDeliveryTable()"
+          >
+          <button
+            type="button"
+            class="clear-search"
+            id="clearSearchButton"
+            onclick="clearDeliverySearch()"
+            aria-label="Clear search"
+            style="display:none;"
+          >×</button>
+        </div>
+
+        <div class="concern-filter-menu-wrap" id="concernFilterMenuWrap" style="display:none;">
+          <button
+            type="button"
+            class="audit-filter-toggle concern-filter-toggle"
+            id="concernFilterToggle"
+            aria-expanded="false"
+            aria-controls="concernFilterPanel"
+            onclick="toggleConcernFilterPanel()"
+          >
+            <span aria-hidden="true">☷</span>
+            Filters
+            <span aria-hidden="true">▾</span>
+          </button>
+
+          <div class="audit-filter-panel concern-filter-panel" id="concernFilterPanel" hidden>
+            <div class="audit-filter-field">
+              <label for="concernStatusFilter">Status</label>
+              <select id="concernStatusFilter" onchange="renderDeliveryTable()">
+                <option value="">All Statuses</option>
+              </select>
+            </div>
+
+            <div class="audit-filter-field">
+              <label for="concernAreaFilter">Area</label>
+              <select id="concernAreaFilter" onchange="renderDeliveryTable()">
+                <option value="">All Areas</option>
+              </select>
+            </div>
+
+            <div class="audit-filter-field">
+              <label for="concernDriverFilter">Driver</label>
+              <select id="concernDriverFilter" onchange="renderDeliveryTable()">
+                <option value="">All Drivers</option>
+              </select>
+            </div>
+
+            <div class="audit-filter-field">
+              <label for="concernDateFilter">Delivery Date</label>
+              <input type="date" id="concernDateFilter" onchange="renderDeliveryTable()" aria-label="Filter by delivery date">
+            </div>
+
+            <button type="button" class="secondary-action-button" onclick="clearConcernFilters()">
+              Clear Filters
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- SELECTION TOOLBAR -->
@@ -2709,17 +2795,90 @@
     return searchable.includes(query);
   }
 
+  function populateConcernFilterOptions(records, selectId, fieldName, defaultLabel) {
+    const select = document.getElementById(selectId);
+    const previousValue = select.value;
+    const values = [...new Set(records.map(function(record) {
+      return String(record[fieldName] || "").trim();
+    }).filter(Boolean))].sort(function(a, b) {
+      return a.localeCompare(b);
+    });
+
+    select.replaceChildren();
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = defaultLabel;
+    select.appendChild(allOption);
+
+    values.forEach(function(value) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    });
+
+    if (values.includes(previousValue)) select.value = previousValue;
+  }
+
+  function getComparableDeliveryDate(value) {
+    if (!value) return "";
+    const textValue = String(value).trim();
+    if (/^\\d{4}-\\d{2}-\\d{2}/.test(textValue)) return textValue.slice(0, 10);
+
+    const parsed = new Date(textValue);
+    if (Number.isNaN(parsed.getTime())) return textValue;
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
   function getVisibleRecords() {
     const records = getTabRecords();
 
     const query = document.getElementById("deliverySearch")
       .value.trim().toLowerCase();
 
-    if (!query) return records;
+    if (currentDeliveryTab !== "concern") {
+      if (!query) return records;
+      return records.filter(function(record) {
+        return recordMatchesSearch(record, query);
+      });
+    }
+
+    populateConcernFilterOptions(records, "concernStatusFilter", "status", "All Statuses");
+    populateConcernFilterOptions(records, "concernAreaFilter", "area", "All Areas");
+    populateConcernFilterOptions(records, "concernDriverFilter", "driver", "All Drivers");
+
+    const statusFilter = document.getElementById("concernStatusFilter").value;
+    const areaFilter = document.getElementById("concernAreaFilter").value;
+    const driverFilter = document.getElementById("concernDriverFilter").value;
+    const dateFilter = document.getElementById("concernDateFilter").value;
 
     return records.filter(function(record) {
-      return recordMatchesSearch(record, query);
+      if (query && !recordMatchesSearch(record, query)) return false;
+      if (statusFilter && String(record.status || "").trim() !== statusFilter) return false;
+      if (areaFilter && String(record.area || "").trim() !== areaFilter) return false;
+      if (driverFilter && String(record.driver || "").trim() !== driverFilter) return false;
+      if (dateFilter && getComparableDeliveryDate(record.deliveryDate) !== dateFilter) return false;
+      return true;
     });
+  }
+
+  function toggleConcernFilterPanel() {
+    const panel = document.getElementById("concernFilterPanel");
+    const toggle = document.getElementById("concernFilterToggle");
+    const isOpen = toggle.getAttribute("aria-expanded") === "true";
+    panel.hidden = isOpen;
+    toggle.setAttribute("aria-expanded", String(!isOpen));
+  }
+
+  function clearConcernFilters() {
+    document.getElementById("concernStatusFilter").value = "";
+    document.getElementById("concernAreaFilter").value = "";
+    document.getElementById("concernDriverFilter").value = "";
+    document.getElementById("concernDateFilter").value = "";
+    renderDeliveryTable();
   }
 
 
@@ -2809,6 +2968,16 @@
     cardList.style.display = "";
     if (tableWrapper) {
       tableWrapper.style.display = "";
+    }
+
+    const concernFilterWrap = document.getElementById("concernFilterMenuWrap");
+    const concernFilterPanel = document.getElementById("concernFilterPanel");
+    const concernFilterToggle = document.getElementById("concernFilterToggle");
+    const showConcernFilters = currentDeliveryTab === "concern";
+    concernFilterWrap.style.display = showConcernFilters ? "" : "none";
+    if (!showConcernFilters) {
+      concernFilterPanel.hidden = true;
+      concernFilterToggle.setAttribute("aria-expanded", "false");
     }
 
     const records = getVisibleRecords();
@@ -5721,6 +5890,10 @@ function getAllowedStatusCorrections(record) {
         document.getElementById("username").value = "";
         document.getElementById("password").value = "";
         document.getElementById("deliverySearch").value = "";
+        document.getElementById("concernStatusFilter").value = "";
+        document.getElementById("concernAreaFilter").value = "";
+        document.getElementById("concernDriverFilter").value = "";
+        document.getElementById("concernDateFilter").value = "";
 
         document.getElementById("auditSearch").value = "";
         document.getElementById("auditActionFilter").value = "";
