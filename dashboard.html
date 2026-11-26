@@ -2100,17 +2100,13 @@
         </div>
 
         <div class="trip-form-group">
-          <label for="tripTruck">
-            Truck <span class="required-mark">*</span>
-          </label>
-          <input type="text" id="tripTruck" placeholder="Enter truck" required>
+          <label>Truck <span class="required-mark">*</span></label>
+          <div id="tripTruckPicker" class="truck-picker"></div>
         </div>
 
         <div class="trip-form-group">
-          <label for="tripDriver">
-            Driver <span class="required-mark">*</span>
-          </label>
-          <input type="text" id="tripDriver" placeholder="Enter driver name" required>
+          <label>Driver(s) <span class="required-mark">*</span></label>
+          <div id="tripDrivers" class="helper-checkbox-list"></div>
         </div>
 
       </div>
@@ -2208,13 +2204,13 @@
         </div>
 
         <div class="trip-form-group">
-          <label for="editTripTruck">Truck</label>
-          <input type="text" id="editTripTruck">
+          <label>Truck</label>
+          <div id="editTripTruckPicker" class="truck-picker"></div>
         </div>
 
         <div class="trip-form-group">
-          <label for="editTripDriver">Driver</label>
-          <input type="text" id="editTripDriver">
+          <label>Driver(s)</label>
+          <div id="editTripDrivers" class="helper-checkbox-list"></div>
         </div>
 
       </div>
@@ -2298,13 +2294,13 @@
       </div>
 
       <div class="assignment-form-group">
-        <label for="assignmentTruck">Truck</label>
-        <input type="text" id="assignmentTruck" placeholder="Enter truck">
+        <label>Truck</label>
+        <div id="assignmentTruckPicker" class="truck-picker"></div>
       </div>
 
       <div class="assignment-form-group">
-        <label for="assignmentDriver">Driver</label>
-        <input type="text" id="assignmentDriver" placeholder="Enter driver name">
+        <label>Driver(s)</label>
+        <div id="assignmentDrivers" class="helper-checkbox-list"></div>
       </div>
 
       <div class="assignment-form-group">
@@ -4816,60 +4812,151 @@ function getAllowedStatusCorrections(record) {
    * LOAD ACTIVE HELPERS
    ****************************************************/
 
-  function loadTripHelpers(containerId, selectedIds, callback) {
-    const container = document.getElementById(containerId);
-
-    container.replaceChildren();
-
-    const loading = document.createElement("p");
-    loading.className = "assignment-help-text";
-    loading.textContent = "Loading available helpers...";
-    container.appendChild(loading);
+  function loadTripOptions(truckContainerId, driverContainerId, helperContainerId,
+    selectedTruckId, selectedDriverIds, selectedHelperIds, callback) {
+    const truckContainer = document.getElementById(truckContainerId);
+    const driverContainer = document.getElementById(driverContainerId);
+    const helperContainer = document.getElementById(helperContainerId);
+    [truckContainer, driverContainer, helperContainer].forEach(function(el) {
+      if (el) el.textContent = "Loading Odoo assignments...";
+    });
 
     google.script.run
       .withSuccessHandler(function(result) {
         if (!result || !result.success) {
-          container.textContent = "Unable to retrieve helpers.";
+          [truckContainer, driverContainer, helperContainer].forEach(function(el) {
+            if (el) el.textContent = "Unable to retrieve assignment options.";
+          });
           if (callback) callback(false);
           return;
         }
 
+        deliveryAssignmentTrucks = result.trucks || [];
+        deliveryAssignmentDrivers = result.drivers || [];
         deliveryAssignmentHelpers = result.helpers || [];
-        container.replaceChildren();
 
-        if (!deliveryAssignmentHelpers.length) {
-          const empty = document.createElement("p");
-          empty.className = "assignment-help-text";
-          empty.textContent = "No active helpers found.";
-          container.appendChild(empty);
-
-          if (callback) callback(true);
-          return;
-        }
-
-        deliveryAssignmentHelpers.forEach(function(helper) {
-          const label = document.createElement("label");
-          label.className = "helper-checkbox-item";
-
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.value = helper.id;
-          checkbox.checked = selectedIds.includes(Number(helper.id));
-
-          const name = document.createElement("span");
-          name.textContent = helper.name;
-
-          label.append(checkbox, name);
-          container.appendChild(label);
-        });
-
+        renderSearchableTruckPicker(truckContainerId, deliveryAssignmentTrucks, selectedTruckId);
+        renderSearchableChecklist(driverContainerId, deliveryAssignmentDrivers, selectedDriverIds || [], "drivers");
+        renderSearchableChecklist(helperContainerId, deliveryAssignmentHelpers, selectedHelperIds || [], "helpers");
         if (callback) callback(true);
       })
       .withFailureHandler(function(error) {
-        container.textContent = error.message || "Unable to load helpers.";
+        [truckContainer, driverContainer, helperContainer].forEach(function(el) {
+          if (el) el.textContent = error.message || "Unable to load assignment options.";
+        });
         if (callback) callback(false);
       })
       .getDeliveryAssignmentOptions(currentSessionToken);
+  }
+
+  function renderSearchableTruckPicker(containerId, options, selectedId) {
+    const container = document.getElementById(containerId);
+    container.replaceChildren();
+    const input = document.createElement("input");
+    input.type = "search";
+    input.placeholder = "Search and select a truck";
+    input.autocomplete = "off";
+    input.className = "truck-picker-search";
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.className = "selected-truck-id";
+    const results = document.createElement("div");
+    results.className = "truck-picker-results";
+    results.hidden = true;
+    const selected = options.find(item => Number(item.id) === Number(selectedId));
+    if (selected) {
+      input.value = selected.name;
+      hidden.value = selected.id;
+    }
+    function draw(filter) {
+      results.replaceChildren();
+      const term = String(filter || "").trim().toLowerCase();
+      const matches = options.filter(item => item.name.toLowerCase().includes(term));
+      if (!matches.length) {
+        const empty = document.createElement("div");
+        empty.className = "truck-picker-empty";
+        empty.textContent = "No matching active trucks.";
+        results.appendChild(empty);
+      } else {
+        matches.forEach(function(item) {
+          const option = document.createElement("button");
+          option.type = "button";
+          option.className = "truck-picker-option";
+          option.textContent = item.name;
+          option.addEventListener("click", function() {
+            input.value = item.name;
+            hidden.value = item.id;
+            results.hidden = true;
+          });
+          results.appendChild(option);
+        });
+      }
+      results.hidden = false;
+    }
+    input.addEventListener("focus", () => draw(input.value));
+    input.addEventListener("input", function() {
+      hidden.value = "";
+      draw(input.value);
+    });
+    document.addEventListener("click", function(event) {
+      if (!container.contains(event.target)) results.hidden = true;
+    });
+    container.append(input, hidden, results);
+  }
+
+  function renderSearchableChecklist(containerId, options, selectedIds, type) {
+    const container = document.getElementById(containerId);
+    container.replaceChildren();
+    const search = document.createElement("input");
+    search.type = "search";
+    search.placeholder = type === "drivers" ? "Search drivers..." : "Search helpers...";
+    search.className = "assignment-list-search";
+    search.autocomplete = "off";
+    const list = document.createElement("div");
+    list.className = "assignment-option-list";
+    const selected = new Set((selectedIds || []).map(Number));
+    function draw() {
+      list.replaceChildren();
+      const term = search.value.trim().toLowerCase();
+      const matches = options.filter(item => item.name.toLowerCase().includes(term));
+      if (!matches.length) {
+        const empty = document.createElement("p");
+        empty.className = "assignment-help-text";
+        empty.textContent = "No matching active records.";
+        list.appendChild(empty);
+        return;
+      }
+      matches.forEach(function(item) {
+        const label = document.createElement("label");
+        label.className = "helper-checkbox-item";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = item.id;
+        checkbox.checked = selected.has(Number(item.id));
+        checkbox.addEventListener("change", function() {
+          if (checkbox.checked) selected.add(Number(item.id));
+          else selected.delete(Number(item.id));
+        });
+        const name = document.createElement("span");
+        name.textContent = item.name;
+        label.append(checkbox, name);
+        list.appendChild(label);
+      });
+    }
+    search.addEventListener("input", draw);
+    draw();
+    container.append(search, list);
+  }
+
+  function getSelectedOptionIds(containerId) {
+    const container = document.getElementById(containerId);
+    return Array.from(container.querySelectorAll(".assignment-option-list input[type='checkbox']:checked"))
+      .map(input => Number(input.value));
+  }
+
+  function getSelectedTruckId(containerId) {
+    const hidden = document.querySelector("#" + containerId + " .selected-truck-id");
+    return hidden && hidden.value ? Number(hidden.value) : "";
   }
 
 
@@ -4931,8 +5018,6 @@ function getAllowedStatusCorrections(record) {
           : "Create Trip";
 
     document.getElementById("tripDeliveryDate").value = "";
-    document.getElementById("tripTruck").value = "";
-    document.getElementById("tripDriver").value = "";
     document.getElementById("tripReason").value = "";
 
     renderTripInvoiceAreas("tripInvoiceAreaList", selectedIds, getTabRecords());
@@ -4945,7 +5030,7 @@ function getAllowedStatusCorrections(record) {
     const saveButton = document.getElementById("saveTripButton");
     saveButton.disabled = true;
 
-    loadTripHelpers("tripHelpers", [], function(success) {
+    loadTripOptions("tripTruckPicker", "tripDrivers", "tripHelpers", "", [], [], function(success) {
       saveButton.disabled = !success;
     });
   }
@@ -5012,13 +5097,13 @@ function getAllowedStatusCorrections(record) {
     }
 
     const deliveryDate = document.getElementById("tripDeliveryDate").value;
-    const truck = document.getElementById("tripTruck").value.trim();
-    const driver = document.getElementById("tripDriver").value.trim();
+    const truckId = getSelectedTruckId("tripTruckPicker");
+    const driverIds = getSelectedOptionIds("tripDrivers");
     const reason = document.getElementById("tripReason").value.trim();
     const helperIds = getSelectedHelperIds("tripHelpers");
 
-    if (!deliveryDate || !truck || !driver) {
-      setTripMessage("Please complete the delivery date, truck, and driver.", "error");
+    if (!deliveryDate || !truckId || !driverIds.length) {
+      setTripMessage("Please complete the delivery date, select one truck, and select at least one driver.", "error");
       return;
     }
 
@@ -5060,8 +5145,8 @@ function getAllowedStatusCorrections(record) {
 
     const schedule = {
       deliveryDate: deliveryDate,
-      truck: truck,
-      driver: driver,
+      truckId: truckId,
+      driverIds: driverIds,
       helperIds: helperIds,
       invoiceAreas: invoiceAreas
     };
@@ -5162,8 +5247,6 @@ function getAllowedStatusCorrections(record) {
 
     document.getElementById("editTripIdDisplay").textContent = tripId;
     document.getElementById("editTripDeliveryDate").value = first.deliveryDate || "";
-    document.getElementById("editTripTruck").value = first.truck || "";
-    document.getElementById("editTripDriver").value = first.driver || "";
     document.getElementById("editTripReason").value = "";
 
     renderEditTripAreas(records);
@@ -5176,12 +5259,10 @@ function getAllowedStatusCorrections(record) {
     const button = document.getElementById("saveEditTripButton");
     button.disabled = true;
 
-    loadTripHelpers(
-      "editTripHelpers",
-      (first.helperIds || []).map(Number),
-      function(success) {
-        button.disabled = !success;
-      }
+    loadTripOptions(
+      "editTripTruckPicker", "editTripDrivers", "editTripHelpers",
+      first.truckId || "", first.driverIds || [], first.helperIds || [],
+      function(success) { button.disabled = !success; }
     );
   }
 
@@ -5243,13 +5324,13 @@ function getAllowedStatusCorrections(record) {
     }
 
     const deliveryDate = document.getElementById("editTripDeliveryDate").value;
-    const truck = document.getElementById("editTripTruck").value.trim();
-    const driver = document.getElementById("editTripDriver").value.trim();
+    const truckId = getSelectedTruckId("editTripTruckPicker");
+    const driverIds = getSelectedOptionIds("editTripDrivers");
     const helperIds = getSelectedHelperIds("editTripHelpers");
     const reason = document.getElementById("editTripReason").value.trim();
 
-    if (!deliveryDate || !truck || !driver) {
-      setEditTripMessage("Delivery date, truck, and driver are required.", "error");
+    if (!deliveryDate || !truckId || !driverIds.length) {
+      setEditTripMessage("Delivery date, truck, and at least one driver are required.", "error");
       return;
     }
 
@@ -5291,8 +5372,8 @@ function getAllowedStatusCorrections(record) {
 
     const changes = {
       deliveryDate: deliveryDate,
-      truck: truck,
-      driver: driver,
+      truckId: truckId,
+      driverIds: driverIds,
       helperIds: helperIds,
       invoiceAreas: invoiceAreas
     };
@@ -5361,8 +5442,6 @@ function getAllowedStatusCorrections(record) {
       record.invoiceNumber || "-";
 
     document.getElementById("assignmentArea").value = record.area || "";
-    document.getElementById("assignmentTruck").value = record.truck || "";
-    document.getElementById("assignmentDriver").value = record.driver || "";
     document.getElementById("assignmentReason").value = "";
 
     document.getElementById("assignmentModal").classList.add("show");
@@ -5373,12 +5452,10 @@ function getAllowedStatusCorrections(record) {
     const button = document.getElementById("saveAssignmentButton");
     button.disabled = true;
 
-    loadTripHelpers(
-      "assignmentHelpers",
-      (record.helperIds || []).map(Number),
-      function(success) {
-        button.disabled = !success;
-      }
+    loadTripOptions(
+      "assignmentTruckPicker", "assignmentDrivers", "assignmentHelpers",
+      record.truckId || "", record.driverIds || [], record.helperIds || [],
+      function(success) { button.disabled = !success; }
     );
   }
 
@@ -5429,9 +5506,9 @@ function getAllowedStatusCorrections(record) {
 
     const changes = {
       area: document.getElementById("assignmentArea").value.trim(),
-      truck: document.getElementById("assignmentTruck").value.trim(),
-      driver: document.getElementById("assignmentDriver").value.trim(),
-      helperIds: getSelectedHelperIds("assignmentHelpers")
+      truckId: getSelectedTruckId("assignmentTruckPicker"),
+      driverIds: getSelectedOptionIds("assignmentDrivers"),
+      helperIds: getSelectedOptionIds("assignmentHelpers")
     };
 
     const button = document.getElementById("saveAssignmentButton");
