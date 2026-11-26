@@ -690,7 +690,7 @@ function getDeliveryDashboardData(token) {
  * All Invoices page. This is separate from Delivery Records:
  * PICKED UP invoices are visible here but are not added to NEW.
  */
-function getAllInvoiceRegisterData(token) {
+function getAllInvoiceRegisterData(token, deliveryType, page, pageSize, searchTerm) {
   const sessionUser = getSessionUser(token);
 
   if (!sessionUser) {
@@ -703,38 +703,72 @@ function getAllInvoiceRegisterData(token) {
     throw new Error("You are not authorized to view all invoices.");
   }
 
+  const normalizedType = String(deliveryType || "DELIVERY")
+    .trim()
+    .toUpperCase()
+    .replace(/[_-]+/g, " ");
+
+  if (!["DELIVERY", "PICKED UP"].includes(normalizedType)) {
+    throw new Error("Invalid invoice category.");
+  }
+
+  const currentPage = Math.max(1, parseInt(page, 10) || 1);
+  const requestedPageSize = parseInt(pageSize, 10) || 100;
+  const limit = Math.min(100, Math.max(1, requestedPageSize));
+  const search = String(searchTerm || "").trim();
+
+  const domain = [
+    ["move_type", "=", "out_invoice"],
+    ["state", "=", "posted"],
+    ["x_studio_delivery_type", "=", normalizedType === "PICKED UP" ? "PICKED UP" : "DELIVERY"]
+  ];
+
+  if (search) {
+    domain.push("|", "|",
+      ["name", "ilike", search],
+      ["invoice_origin", "ilike", search],
+      ["partner_id.name", "ilike", search]
+    );
+  }
+
   const connection = odooGetConnection_();
-  const invoices = odooSearchReadAll_(
+  const totalCount = Number(odooExecuteKw_(
     connection,
     "account.move",
-    [
-      ["move_type", "=", "out_invoice"],
-      ["state", "=", "posted"]
-    ],
-    [
-      "id",
-      "name",
-      "invoice_date",
-      "partner_id",
-      "invoice_origin",
-      "x_studio_delivery_type",
-      "amount_total",
-      "currency_id",
-      "payment_state"
-    ],
-    "invoice_date desc, id desc"
+    "search_count",
+    [domain]
+  )) || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const safePage = Math.min(currentPage, totalPages);
+  const invoices = odooExecuteKw_(
+    connection,
+    "account.move",
+    "search_read",
+    [domain],
+    {
+      fields: [
+        "id",
+        "name",
+        "invoice_date",
+        "partner_id",
+        "invoice_origin",
+        "x_studio_delivery_type",
+        "amount_total",
+        "currency_id",
+        "payment_state"
+      ],
+      limit: limit,
+      offset: (safePage - 1) * limit,
+      order: "invoice_date desc, id desc"
+    }
   );
 
-  const deliveryInvoices = [];
-  const pickedUpInvoices = [];
+  if (!Array.isArray(invoices)) {
+    throw new Error("Unexpected response while retrieving customer invoices.");
+  }
 
-  invoices.forEach(function(invoice) {
-    const rawType = String(invoice.x_studio_delivery_type || "")
-      .trim()
-      .toUpperCase()
-      .replace(/[_-]+/g, " ");
-
-    const item = {
+  const invoiceItems = invoices.map(function(invoice) {
+    return {
       id: Number(invoice.id),
       invoiceNumber: invoice.name || "",
       invoiceDate: invoice.invoice_date || "",
@@ -745,22 +779,18 @@ function getAllInvoiceRegisterData(token) {
       currency: odooGetRelationName_(invoice.currency_id),
       paymentStatus: String(invoice.payment_state || "")
     };
-
-    if (rawType === "DELIVERY") {
-      deliveryInvoices.push(item);
-    } else if (rawType === "PICKED UP") {
-      pickedUpInvoices.push(item);
-    }
   });
 
   return {
     success: true,
-    deliveryInvoices: deliveryInvoices,
-    pickedUpInvoices: pickedUpInvoices,
-    totalCount: deliveryInvoices.length + pickedUpInvoices.length
+    deliveryType: normalizedType,
+    invoices: invoiceItems,
+    totalCount: totalCount,
+    page: safePage,
+    pageSize: limit,
+    totalPages: totalPages
   };
 }
-
 
 /****************************************************
  * DELIVERY ASSIGNMENT OPTIONS
