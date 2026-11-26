@@ -1059,8 +1059,9 @@
   /* Compact columns for the desktop Ongoing tab only */
   .delivery-table.ongoing-compact-table {
     min-width: 0;
-    width: 100%;
-    table-layout: fixed;
+    width: max-content;
+    max-width: 100%;
+    table-layout: auto;
   }
   /* Keep status and action columns consistent so the edit icons align. */
   .delivery-table.ongoing-compact-table td:nth-last-child(2) {
