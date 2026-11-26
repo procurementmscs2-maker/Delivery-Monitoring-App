@@ -2286,6 +2286,7 @@
     }
 
     switchMainView("records");
+    updateDeliveryTableHeaders();
     loadDeliveryData();
   }
 
@@ -2525,29 +2526,11 @@
   }
 
 
-  /****************************************************
-   * MAIN RENDER FUNCTION
-   ****************************************************/
-
-  function renderDeliveryTable() {
+  function updateDeliveryTableHeaders() {
     const tableBody = document.getElementById("deliveryTableBody");
-    const cardList = document.getElementById("deliveryCardList");
-
-    const deliverySection = document.getElementById("deliverySection");
-
-    deliverySection.classList.toggle(
-      "trip-group-view",
-      currentDeliveryTab === "ongoing" &&
-      canEditAssignments() &&
-      window.matchMedia("(max-width: 650px)").matches
-    );
-
-    const tableWrapper = deliverySection.querySelector(".table-wrapper");
-    const deliveryTable = tableBody.closest("table");
-
-    // Ongoing trip view changes the shared table's columns and compact styling.
-    // Restore the standard invoice-table structure before rendering any tab so
-    // switching to New, Finished, or With Concerns cannot inherit that layout.
+    const deliveryTable = tableBody && tableBody.closest("table");
+    if (!deliveryTable) return;
+    // Set the correct column headings for the selected delivery tab.
     if (deliveryTable) {
       deliveryTable.classList.remove("ongoing-compact-table");
       const headerRow = deliveryTable.querySelector("thead tr");
@@ -2601,6 +2584,30 @@
         }
       }
     }
+  }
+
+
+  /****************************************************
+   * MAIN RENDER FUNCTION
+   ****************************************************/
+
+  function renderDeliveryTable() {
+    const tableBody = document.getElementById("deliveryTableBody");
+    const cardList = document.getElementById("deliveryCardList");
+
+    const deliverySection = document.getElementById("deliverySection");
+
+    deliverySection.classList.toggle(
+      "trip-group-view",
+      currentDeliveryTab === "ongoing" &&
+      canEditAssignments() &&
+      window.matchMedia("(max-width: 650px)").matches
+    );
+
+    const tableWrapper = deliverySection.querySelector(".table-wrapper");
+    const deliveryTable = tableBody.closest("table");
+
+    updateDeliveryTableHeaders();
 
     cardList.style.display = "";
     if (tableWrapper) {
