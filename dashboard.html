@@ -2560,29 +2560,44 @@
         selectionHeader.style.display = "none";
         headerRow.appendChild(selectionHeader);
 
-        [
-          "INVOICE NUMBER",
-          "SALES ORDER",
-          "CUSTOMER",
-          "SALES REPRESENTATIVE",
-          "DELIVERY DATE",
-          "AREA",
-          "DRIVER",
-          "HELPER(S)",
-          "TRUCK",
-          "STATUS"
-        ].forEach(function(label) {
+        const finishedTab = currentDeliveryTab === "finished";
+        const headerLabels = finishedTab
+          ? [
+              "INVOICE NUMBER",
+              "CUSTOMER",
+              "SALES REPRESENTATIVE",
+              "DELIVERY DATE",
+              "AREA",
+              "DRIVER",
+              "HELPER(S)"
+            ]
+          : [
+              "INVOICE NUMBER",
+              "SALES ORDER",
+              "CUSTOMER",
+              "SALES REPRESENTATIVE",
+              "DELIVERY DATE",
+              "AREA",
+              "DRIVER",
+              "HELPER(S)",
+              "TRUCK",
+              "STATUS"
+            ];
+
+        headerLabels.forEach(function(label) {
           const th = document.createElement("th");
           th.textContent = label;
           headerRow.appendChild(th);
         });
 
-        const actionHeader = document.createElement("th");
-        actionHeader.id = "assignmentActionHeader";
-        actionHeader.textContent = "ACTION";
-        actionHeader.style.display =
-          (canEditAssignments() || isHelperAccount()) ? "" : "none";
-        headerRow.appendChild(actionHeader);
+        if (!finishedTab) {
+          const actionHeader = document.createElement("th");
+          actionHeader.id = "assignmentActionHeader";
+          actionHeader.textContent = "ACTION";
+          actionHeader.style.display =
+            (canEditAssignments() || isHelperAccount()) ? "" : "none";
+          headerRow.appendChild(actionHeader);
+        }
       }
     }
 
@@ -2637,7 +2652,9 @@
       const row = document.createElement("tr");
       const cell = document.createElement("td");
 
-      cell.colSpan = canEditAssignments() ? 12 : 11;
+      cell.colSpan = currentDeliveryTab === "finished"
+        ? 7
+        : (canEditAssignments() ? 12 : 11);
       cell.className = "empty-message";
       cell.textContent = message;
 
@@ -3489,19 +3506,30 @@
     }
 
     const compactOngoing = currentDeliveryTab === "ongoing";
+    const finishedTab = currentDeliveryTab === "finished";
     const values = compactOngoing
       ? [record.invoiceNumber, record.customerName, record.salesRepresentative, record.area]
-      : [
-          record.invoiceNumber,
-          record.salesOrderNumber,
-          record.customerName,
-          record.salesRepresentative,
-          record.deliveryDate,
-          record.area,
-          record.driver,
-          (record.helperNames || []).join(", ") || "-",
-          record.truck
-        ];
+      : finishedTab
+        ? [
+            record.invoiceNumber,
+            record.customerName,
+            record.salesRepresentative,
+            record.deliveryDate,
+            record.area,
+            record.driver,
+            (record.helperNames || []).join(", ") || "-"
+          ]
+        : [
+            record.invoiceNumber,
+            record.salesOrderNumber,
+            record.customerName,
+            record.salesRepresentative,
+            record.deliveryDate,
+            record.area,
+            record.driver,
+            (record.helperNames || []).join(", ") || "-",
+            record.truck
+          ];
 
     values.forEach(function(value) {
       const cell = document.createElement("td");
@@ -3509,11 +3537,14 @@
       row.appendChild(cell);
     });
 
-    const statusCell = document.createElement("td");
-    statusCell.appendChild(createStatusBadge(record.status));
-    row.appendChild(statusCell);
+    let statusCell = null;
+    if (!finishedTab) {
+      statusCell = document.createElement("td");
+      statusCell.appendChild(createStatusBadge(record.status));
+      row.appendChild(statusCell);
+    }
 
-    if (canEditAssignments() || isHelperAccount()) {
+    if (!finishedTab && (canEditAssignments() || isHelperAccount())) {
       const actionCell = document.createElement("td");
 
       if (canShowEditStatus(record)) {
