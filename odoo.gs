@@ -664,6 +664,22 @@ function getDeliveryAssignmentOptions(token) {
 
   const connection = odooGetConnection_();
 
+  const trucks = odooSearchReadAll_(
+    connection,
+    "x_delivery_trucks",
+    [["x_active", "=", true]],
+    ["id", "x_name"],
+    "x_name asc"
+  );
+
+  const drivers = odooSearchReadAll_(
+    connection,
+    "x_delivery_drivers",
+    [["x_active", "=", true]],
+    ["id", "x_name"],
+    "x_name asc"
+  );
+
   const helpers = odooSearchReadAll_(
     connection,
     "x_delivery_helpers",
@@ -674,6 +690,12 @@ function getDeliveryAssignmentOptions(token) {
 
   return {
     success: true,
+    trucks: trucks.map(function(item) {
+      return { id: item.id, name: item.x_name || "Unnamed Truck" };
+    }),
+    drivers: drivers.map(function(item) {
+      return { id: item.id, name: item.x_name || "Unnamed Driver" };
+    }),
     helpers: helpers.map(function(helper) {
       return {
         id: helper.id,
