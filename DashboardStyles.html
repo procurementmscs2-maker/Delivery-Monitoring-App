@@ -1101,4 +1101,24 @@
   .delivery-table.ongoing-compact-table td:nth-child(5),
   .delivery-table.ongoing-compact-table th:nth-child(5) { min-width: 70px; }
 
+
+  /* Keep invoice rows visible in the table. The only rows intentionally
+     hidden are the individual invoices inside collapsed Ongoing trip groups. */
+  #dashboardView .delivery-table tbody {
+    display: table-row-group !important;
+  }
+
+  #dashboardView .delivery-table tbody > tr:not([hidden]) {
+    display: table-row !important;
+    visibility: visible !important;
+  }
+
+  #dashboardView .delivery-table tbody > tr[hidden] {
+    display: none !important;
+  }
+
+  #dashboardView .delivery-table tbody > tr:not([hidden]) > td {
+    visibility: visible !important;
+  }
+
 </style>
