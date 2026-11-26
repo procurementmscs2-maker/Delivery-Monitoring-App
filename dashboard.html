@@ -991,35 +991,32 @@
 
   /* Delivery status tabs: full pill shape with a subtle darker hover state. */
   #dashboardView #deliverySection > .delivery-tabs .delivery-tab {
-    border: 1px solid #e2e8f0;
+    border: 0;
     border-radius: 999px;
     padding: 11px 18px;
     min-height: 44px;
     background: #ffffff;
     color: #64748b;
     font-weight: 650;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    transition: background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+    box-shadow: none;
+    transition: background-color .2s ease, color .2s ease;
   }
 
   #dashboardView #deliverySection > .delivery-tabs .delivery-tab:hover {
-    background: #e2e8f0;
-    border-color: #cbd5e1;
+    background: #f1f5f9;
     color: #334155;
-    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
+    box-shadow: none;
   }
 
   #dashboardView #deliverySection > .delivery-tabs .delivery-tab.active {
     color: #1d4ed8;
     background: #eaf2ff;
-    border-color: #93c5fd;
-    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.2), 0 2px 5px rgba(37, 99, 235, 0.07);
+    box-shadow: none;
   }
 
   #dashboardView #deliverySection > .delivery-tabs .delivery-tab.active:hover {
     color: #1e40af;
-    background: #dbeafe;
-    border-color: #60a5fa;
+    background: #e2edff;
   }
 
   #dashboardView .delivery-table thead th {
