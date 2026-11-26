@@ -946,280 +946,160 @@ function getInvoiceAuditLogs(token, recordId) {
  *
  * Every changed field gets its own audit log.
  */
-function saveDeliveryAssignment(
-  token,
-  recordId,
-  changes,
-  reason
-) {
+function saveDeliveryAssignment(token, recordId, changes, reason) {
   const sessionUser = getSessionUser(token);
-
-  if (!sessionUser) {
-    throw new Error("Your session has expired. Please log in again.");
-  }
+  if (!sessionUser) throw new Error("Your session has expired. Please log in again.");
 
   const role = String(sessionUser.role || "").trim().toUpperCase();
-
   if (!["ADMIN", "MANAGER", "ENCODER"].includes(role)) {
-    throw new Error(
-      "You are not authorized to edit delivery assignments."
-    );
+    throw new Error("You are not authorized to edit delivery assignments.");
   }
 
   recordId = Number(recordId);
-
-  if (!Number.isInteger(recordId) || recordId <= 0) {
-    throw new Error("Invalid Delivery Record ID.");
-  }
-
-  if (!changes || typeof changes !== "object") {
-    throw new Error("No assignment changes were provided.");
-  }
+  if (!Number.isInteger(recordId) || recordId <= 0) throw new Error("Invalid Delivery Record ID.");
+  if (!changes || typeof changes !== "object") throw new Error("No assignment changes were provided.");
 
   reason = String(reason || "").trim();
-
-  if (!reason) {
-    throw new Error("Reason for Change is required before saving.");
-  }
-
-  if (reason.length > 2000) {
-    throw new Error("Reason cannot exceed 2,000 characters.");
-  }
+  if (!reason) throw new Error("Reason for Change is required before saving.");
+  if (reason.length > 2000) throw new Error("Reason cannot exceed 2,000 characters.");
 
   const connection = odooGetConnection_();
-
   const records = odooSearchReadAll_(
-    connection,
-    "x_delivery_records",
-    [
-      ["id", "=", recordId],
-      ["x_active", "=", true]
-    ],
-    [
-      "id",
-      "x_studio_invoice_number",
-      "x_studio_area",
-      "x_studio_truck",
-      "x_studio_driver",
-      "x_studio_helper_1"
-    ],
+    connection, "x_delivery_records",
+    [["id", "=", recordId], ["x_active", "=", true]],
+    ["id", "x_studio_invoice_number", "x_studio_area",
+     "x_studio_truck_1", "x_studio_drivers", "x_studio_helper_1"],
     "id asc"
   );
-
-  if (!records.length) {
-    throw new Error("Delivery Record not found or inactive.");
-  }
+  if (!records.length) throw new Error("Delivery Record not found or inactive.");
 
   const record = records[0];
   const helperMap = odooGetHelperMap_(connection);
-
-
   const updateValues = {};
   const rollbackValues = {};
   const auditChanges = [];
 
-  function addTextChange(
-    inputKey,
-    fieldName,
-    fieldLabel,
-    oldValue
-  ) {
-    if (!Object.prototype.hasOwnProperty.call(changes, inputKey)) {
-      return;
-    }
-
-    const newValue = String(changes[inputKey] ?? "").trim();
-    const previousValue = String(oldValue || "").trim();
-
-    if (newValue === previousValue) return;
-
-    updateValues[fieldName] = newValue;
+  function addTextChange(inputKey, fieldName, fieldLabel, oldValue) {
+    if (!Object.prototype.hasOwnProperty.call(changes, inputKey)) return;
+    const next = String(changes[inputKey] ?? "").trim();
+    const previous = String(oldValue || "").trim();
+    if (next === previous) return;
+    updateValues[fieldName] = next;
     rollbackValues[fieldName] = oldValue || false;
-
-    auditChanges.push({
-      field: fieldLabel,
-      oldValue: previousValue,
-      newValue: newValue
-    });
+    auditChanges.push({field: fieldLabel, oldValue: previous, newValue: next});
   }
 
-  addTextChange(
-    "area",
-    "x_studio_area",
-    "Area",
-    record.x_studio_area
-  );
+  addTextChange("area", "x_studio_area", "Area", record.x_studio_area);
 
-  addTextChange(
-    "truck",
-    "x_studio_truck",
-    "Truck",
-    record.x_studio_truck
-  );
-
-  addTextChange(
-    "driver",
-    "x_studio_driver",
-    "Driver",
-    record.x_studio_driver
-  );
-
-  if (
-    Object.prototype.hasOwnProperty.call(changes, "helperIds")
-  ) {
-    if (!Array.isArray(changes.helperIds)) {
-      throw new Error("Invalid helper selection.");
+  if (Object.prototype.hasOwnProperty.call(changes, "truckId")) {
+    const raw = changes.truckId === "" || changes.truckId == null ? false : Number(changes.truckId);
+    if (raw !== false) {
+      if (!Number.isInteger(raw) || raw <= 0) throw new Error("Invalid truck selection.");
+      const active = odooSearchReadAll_(connection, "x_delivery_trucks",
+        [["id", "=", raw], ["x_active", "=", true]], ["id", "x_name"], "id asc");
+      if (!active.length) throw new Error("The selected truck is inactive or does not exist.");
     }
+    const oldId = Array.isArray(record.x_studio_truck_1) ? Number(record.x_studio_truck_1[0]) : false;
+    if (oldId !== raw) {
+      updateValues.x_studio_truck_1 = raw;
+      rollbackValues.x_studio_truck_1 = oldId || false;
+      const oldName = Array.isArray(record.x_studio_truck_1) ? record.x_studio_truck_1[1] : "";
+      const newName = raw ? active[0].x_name : "";
+      auditChanges.push({field:"Truck", oldValue:oldName || "", newValue:newName || ""});
+    }
+  }
 
-    const activeHelpers = odooSearchReadAll_(
-      connection,
-      "x_delivery_helpers",
-      [["x_active", "=", true]],
-      ["id"],
-      "id asc"
-    );
-
-    const activeHelperIds = new Set(
-      activeHelpers.map(function(helper) {
-        return Number(helper.id);
-      })
-    );
-
-    const newHelperIds = changes.helperIds.map(function(id) {
-      const numberId = Number(id);
-
-      if (
-        !Number.isInteger(numberId) ||
-        numberId <= 0 ||
-        !activeHelperIds.has(numberId)
-      ) {
-        throw new Error(
-          "A selected helper is inactive or does not exist."
-        );
+  if (Object.prototype.hasOwnProperty.call(changes, "driverIds")) {
+    if (!Array.isArray(changes.driverIds)) throw new Error("Invalid driver selection.");
+    const activeDrivers = odooSearchReadAll_(connection, "x_delivery_drivers",
+      [["x_active", "=", true]], ["id", "x_name"], "id asc");
+    const driverMap = {};
+    activeDrivers.forEach(function(item){ driverMap[Number(item.id)] = item.x_name || "Unnamed Driver"; });
+    const ids = [...new Set(changes.driverIds.map(Number))];
+    ids.forEach(function(id){
+      if (!Number.isInteger(id) || id <= 0 || !driverMap[id]) {
+        throw new Error("A selected driver is inactive or does not exist.");
       }
-
-      return numberId;
     });
+    const oldIds = (record.x_studio_drivers || []).map(Number);
+    const oldSorted = oldIds.slice().sort((a,b)=>a-b);
+    const newSorted = ids.slice().sort((a,b)=>a-b);
+    if (JSON.stringify(oldSorted) !== JSON.stringify(newSorted)) {
+      updateValues.x_studio_drivers = [[6, 0, ids]];
+      rollbackValues.x_studio_drivers = [[6, 0, oldIds]];
+      const oldNames = oldIds.map(id => driverMap[id] || "Inactive Driver #" + id).join(", ");
+      auditChanges.push({field:"Driver(s)", oldValue:oldNames, newValue:ids.map(id=>driverMap[id]).join(", ")});
+    }
+  }
 
-    const uniqueHelperIds = [...new Set(newHelperIds)];
-
-    const oldHelperIds = (
-      record.x_studio_helper_1 || []
-    ).map(Number);
-
-    const oldSorted = oldHelperIds.slice().sort(function(a, b) {
-      return a - b;
+  if (Object.prototype.hasOwnProperty.call(changes, "helperIds")) {
+    if (!Array.isArray(changes.helperIds)) throw new Error("Invalid helper selection.");
+    const activeHelpers = odooSearchReadAll_(connection, "x_delivery_helpers",
+      [["x_active", "=", true]], ["id"], "id asc");
+    const activeIds = new Set(activeHelpers.map(item=>Number(item.id)));
+    const ids = [...new Set(changes.helperIds.map(Number))];
+    ids.forEach(function(id){
+      if (!Number.isInteger(id) || id <= 0 || !activeIds.has(id)) {
+        throw new Error("A selected helper is inactive or does not exist.");
+      }
     });
-
-    const newSorted = uniqueHelperIds.slice().sort(function(a, b) {
-      return a - b;
-    });
-
-    const sameHelpers =
-      JSON.stringify(oldSorted) === JSON.stringify(newSorted);
-
-    if (!sameHelpers) {
-      updateValues.x_studio_helper_1 = [
-        [6, 0, uniqueHelperIds]
-      ];
-
-      rollbackValues.x_studio_helper_1 = [
-        [6, 0, oldHelperIds]
-      ];
-
+    const oldIds = (record.x_studio_helper_1 || []).map(Number);
+    if (JSON.stringify(oldIds.slice().sort((a,b)=>a-b)) !== JSON.stringify(ids.slice().sort((a,b)=>a-b))) {
+      updateValues.x_studio_helper_1 = [[6, 0, ids]];
+      rollbackValues.x_studio_helper_1 = [[6, 0, oldIds]];
       auditChanges.push({
-        field: "Helper(s)",
-        oldValue: odooGetHelperNames_(
-          oldHelperIds,
-          helperMap
-        ).join(", "),
-        newValue: odooGetHelperNames_(
-          uniqueHelperIds,
-          helperMap
-        ).join(", ")
+        field:"Helper(s)",
+        oldValue:odooGetHelperNames_(oldIds, helperMap).join(", "),
+        newValue:odooGetHelperNames_(ids, helperMap).join(", ")
       });
     }
   }
 
-  if (!auditChanges.length) {
-    throw new Error("No changes were detected.");
-  }
+  if (!auditChanges.length) throw new Error("No changes were detected.");
 
   const transactionId = Utilities.getUuid();
   const timestamp = odooGetAuditTimestamp_();
   const auditUser = odooGetAuditUser_(sessionUser, role);
-
-  const writeResult = odooExecuteKw_(
-    connection,
-    "x_delivery_records",
-    "write",
-    [[recordId], updateValues]
-  );
-
-  if (writeResult !== true) {
-    throw new Error("Odoo could not save the assignment changes.");
-  }
+  const writeResult = odooExecuteKw_(connection, "x_delivery_records", "write", [[recordId], updateValues]);
+  if (writeResult !== true) throw new Error("Odoo could not save the assignment changes.");
 
   const auditRows = auditChanges.map(function(change) {
     return {
-      x_name:
-        record.x_studio_invoice_number +
-        " - " + change.field,
-      x_studio_action: "UPDATE",
-      x_studio_change_justification: reason,
-      x_studio_deliver_monitoring_timestamp: timestamp,
-      x_studio_delivery_record: recordId,
-      x_studio_field: change.field,
-      x_studio_invoice_number:
-        record.x_studio_invoice_number || "",
-      x_studio_old_value: change.oldValue,
-      x_studio_new_value: change.newValue,
-      x_studio_transaction_id: transactionId,
-      x_studio_user: auditUser.userName,
-      x_studio_user_role: auditUser.userRole
+      x_name:(record.x_studio_invoice_number || "Delivery Record " + recordId) + " - " + change.field,
+      x_studio_action:"UPDATE",
+      x_studio_change_justification:reason,
+      x_studio_deliver_monitoring_timestamp:timestamp,
+      x_studio_delivery_record:recordId,
+      x_studio_field:change.field,
+      x_studio_invoice_number:record.x_studio_invoice_number || "",
+      x_studio_old_value:change.oldValue,
+      x_studio_new_value:change.newValue,
+      x_studio_transaction_id:transactionId,
+      x_studio_user:auditUser.userName,
+      x_studio_user_role:auditUser.userRole
     };
   });
 
   try {
     odooCreateAuditLogs_(connection, auditRows);
-
   } catch (auditError) {
     try {
-      const rollbackResult = odooExecuteKw_(
-        connection,
-        "x_delivery_records",
-        "write",
-        [[recordId], rollbackValues]
-      );
-
-      if (rollbackResult !== true) {
-        throw new Error("Odoo did not confirm rollback.");
-      }
-
+      const rollback = odooExecuteKw_(connection, "x_delivery_records", "write", [[recordId], rollbackValues]);
+      if (rollback !== true) throw new Error("Odoo did not confirm rollback.");
     } catch (rollbackError) {
-      throw new Error(
-        "Audit logging failed AND the original values could not " +
-        "be restored. Please check Odoo record " + recordId +
-        ". Audit error: " + auditError.message +
-        ". Rollback error: " + rollbackError.message
-      );
+      throw new Error("Audit logging failed AND the original values could not be restored. Audit error: " +
+        auditError.message + ". Rollback error: " + rollbackError.message);
     }
-
-    throw new Error(
-      "Audit logging failed. The assignment update was rolled back. " +
-      auditError.message
-    );
+    throw new Error("Audit logging failed. The assignment update was rolled back. " + auditError.message);
   }
 
   return {
-    success: true,
-    message: "Assignment updated and audit logs created.",
-    recordId: recordId,
-    invoiceNumber: record.x_studio_invoice_number,
-    transactionId: transactionId,
-    changedFields: auditChanges.map(function(change) {
-      return change.field;
-    })
+    success:true,
+    message:"Assignment updated and audit logs created.",
+    recordId:recordId,
+    invoiceNumber:record.x_studio_invoice_number,
+    transactionId:transactionId,
+    changedFields:auditChanges.map(change=>change.field)
   };
 }
 
