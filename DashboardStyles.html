@@ -1288,6 +1288,11 @@
 
   /* Enforce alignment in the Delivery Records table, including full-screen layouts.
      Detail columns stay left; Status and Action stay right. */
+  #dashboardView #deliverySection .delivery-table th,
+  #dashboardView #deliverySection .delivery-table td {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
   #dashboardView #deliverySection .delivery-table th:not(.delivery-status-header):not(.delivery-action-header),
   #dashboardView #deliverySection .delivery-table td:not(.delivery-status-cell):not(.delivery-action-cell) {
     text-align: left !important;
