@@ -894,6 +894,18 @@
     flex-shrink: 0;
   }
 
+  /* Remove the browser focus rectangle around checkboxes in the New Trip modal. */
+  #tripModal .helper-checkbox-item input:focus,
+  #tripModal .helper-checkbox-item input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  #tripModal .helper-checkbox-item:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
   .helper-checkbox-item span {
     font-weight: normal;
     color: #374151;
