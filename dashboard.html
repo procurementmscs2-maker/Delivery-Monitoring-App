@@ -3320,9 +3320,12 @@
               "STATUS"
             ];
 
-        headerLabels.forEach(function(label) {
+        headerLabels.forEach(function(label, index) {
           const th = document.createElement("th");
           th.textContent = label;
+          if ((!finishedTab && label === "STATUS") || (finishedTab && index === headerLabels.length - 1)) {
+            th.classList.add("delivery-status-header");
+          }
           headerRow.appendChild(th);
         });
 
@@ -3330,6 +3333,7 @@
           const actionHeader = document.createElement("th");
           actionHeader.id = "assignmentActionHeader";
           actionHeader.textContent = "ACTION";
+          actionHeader.classList.add("delivery-action-header");
           actionHeader.style.display =
             (canEditAssignments() || isHelperAccount()) ? "" : "none";
           headerRow.appendChild(actionHeader);
@@ -4306,11 +4310,13 @@
     });
 
     let statusCell = document.createElement("td");
+    statusCell.classList.add("delivery-status-cell");
     statusCell.appendChild(createStatusBadge(record.status));
     row.appendChild(statusCell);
 
     if ((canEditAssignments() || isHelperAccount()) && (!finishedTab || canShowEditStatus(record))) {
       const actionCell = document.createElement("td");
+      actionCell.classList.add("delivery-action-cell");
 
       if (canShowEditStatus(record)) {
         const statusButton = document.createElement("button");
