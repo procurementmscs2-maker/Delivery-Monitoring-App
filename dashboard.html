@@ -2085,7 +2085,7 @@
           type="button"
           class="refresh-button"
           id="refreshAuditButton"
-          onclick="loadAuditLogs()"
+          onclick="loadAuditLogs(1)"
         >
           ↻ Refresh Logs
         </button>
@@ -2099,7 +2099,7 @@
             type="search"
             id="auditSearch"
             placeholder="Search invoice, user, field, reason, or value..."
-            oninput="renderAuditLogs()"
+            oninput="scheduleAuditLogSearch()"
           >
         </div>
 
@@ -2120,7 +2120,7 @@
           <div class="audit-filter-panel" id="auditFilterPanel" hidden>
             <div class="audit-filter-field">
               <label for="auditActionFilter">Action</label>
-              <select id="auditActionFilter" onchange="renderAuditLogs()">
+              <select id="auditActionFilter" onchange="loadAuditLogs(1)">
                 <option value="">All Actions</option>
                 <option value="CREATE">Create</option>
                 <option value="UPDATE">Update</option>
@@ -2133,9 +2133,12 @@
 
             <div class="audit-filter-field">
               <label for="auditUserFilter">User</label>
-              <select id="auditUserFilter" onchange="renderAuditLogs()">
-                <option value="">All Users</option>
-              </select>
+              <input
+                type="search"
+                id="auditUserFilter"
+                placeholder="Filter by user"
+                oninput="scheduleAuditLogSearch()"
+              >
             </div>
 
             <div class="audit-filter-field">
@@ -2143,7 +2146,7 @@
               <input
                 type="date"
                 id="auditDateFilter"
-                onchange="renderAuditLogs()"
+                onchange="loadAuditLogs(1)"
                 aria-label="Filter by date"
               >
             </div>
@@ -2186,6 +2189,8 @@
           </tbody>
         </table>
       </div>
+
+      <div id="auditPagination" class="all-invoices-pagination"></div>
 
       <div id="auditEmptyState" class="audit-empty" style="display:none;">
         No audit records found.
@@ -2665,6 +2670,10 @@
   let auditLogsData = [];
   let auditLogsLoaded = false;
   let auditLogsLoading = false;
+  let auditLogsPage = 1;
+  let auditLogsTotalPages = 0;
+  let auditLogsTotalCount = 0;
+  let auditLogsSearchTimer = null;
 
 
   /****************************************************
@@ -6019,188 +6028,112 @@ function getAllowedStatusCorrections(record) {
   }
 
 
-  function loadAuditLogs() {
+
+  function scheduleAuditLogSearch() {
+    if (auditLogsSearchTimer) clearTimeout(auditLogsSearchTimer);
+    auditLogsSearchTimer = setTimeout(function() {
+      auditLogsSearchTimer = null;
+      loadAuditLogs(1);
+    }, 350);
+  }
+
+
+  function loadAuditLogs(page) {
     if (!currentSessionToken || auditLogsLoading) return;
 
+    auditLogsPage = Math.max(1, Number(page) || auditLogsPage || 1);
     auditLogsLoading = true;
 
     const button = document.getElementById("refreshAuditButton");
     const tbody = document.getElementById("auditTableBody");
     const message = document.getElementById("auditMessage");
     const emptyState = document.getElementById("auditEmptyState");
+    const pagination = document.getElementById("auditPagination");
 
     button.disabled = true;
     button.textContent = "Loading...";
     message.textContent = "";
     emptyState.style.display = "none";
-
+    pagination.replaceChildren();
     tbody.replaceChildren();
 
     const loadingRow = document.createElement("tr");
     const loadingCell = document.createElement("td");
-
     loadingCell.colSpan = isHelperAccount() ? 10 : 6;
     loadingCell.className = "loading-message";
     loadingCell.textContent = "Retrieving audit history from Odoo...";
-
     loadingRow.appendChild(loadingCell);
     tbody.appendChild(loadingRow);
 
     google.script.run
       .withSuccessHandler(function(result) {
         auditLogsLoading = false;
-
         button.disabled = false;
         button.textContent = "↻ Refresh Logs";
 
         if (!result || !result.success) {
           auditLogsLoaded = false;
-
           tbody.replaceChildren();
-
           const errorRow = document.createElement("tr");
           const errorCell = document.createElement("td");
-
           errorCell.colSpan = isHelperAccount() ? 10 : 6;
           errorCell.className = "audit-error";
-          errorCell.textContent =
-            result && result.message
-              ? result.message
-              : "Unable to retrieve audit logs.";
-
+          errorCell.textContent = result && result.message
+            ? result.message
+            : "Unable to retrieve audit logs.";
           errorRow.appendChild(errorCell);
           tbody.appendChild(errorRow);
           return;
         }
 
         auditLogsData = Array.isArray(result.logs) ? result.logs : [];
+        auditLogsPage = Number(result.page) || 1;
+        auditLogsTotalPages = Number(result.totalPages) || 0;
+        auditLogsTotalCount = Number(result.totalCount) || 0;
         auditLogsLoaded = true;
-
-
-        populateAuditUserFilter();
         renderAuditLogs();
       })
       .withFailureHandler(function(error) {
         auditLogsLoading = false;
         auditLogsLoaded = false;
-
         button.disabled = false;
         button.textContent = "↻ Refresh Logs";
-
         tbody.replaceChildren();
-
         const errorRow = document.createElement("tr");
         const errorCell = document.createElement("td");
-
         errorCell.colSpan = isHelperAccount() ? 10 : 6;
         errorCell.className = "audit-error";
-        errorCell.textContent =
-          error.message || "Unable to retrieve audit logs.";
-
+        errorCell.textContent = error.message || "Unable to retrieve audit logs.";
         errorRow.appendChild(errorCell);
         tbody.appendChild(errorRow);
       })
-      .getDeliveryAuditLogs(currentSessionToken);
-  }
-
-
-  function populateAuditUserFilter() {
-    const select = document.getElementById("auditUserFilter");
-    const previousValue = select.value;
-
-    const users = [
-      ...new Set(
-        auditLogsData
-          .map(function(log) {
-            return String(log.user || "").trim();
-          })
-          .filter(Boolean)
-      )
-    ].sort(function(a, b) {
-      return a.localeCompare(b);
-    });
-
-    select.replaceChildren();
-
-    const allOption = document.createElement("option");
-    allOption.value = "";
-    allOption.textContent = "All Users";
-    select.appendChild(allOption);
-
-    users.forEach(function(user) {
-      const option = document.createElement("option");
-      option.value = user;
-      option.textContent = user;
-      select.appendChild(option);
-    });
-
-    if (users.includes(previousValue)) {
-      select.value = previousValue;
-    }
+      .getDeliveryAuditLogs(
+        currentSessionToken,
+        auditLogsPage,
+        100,
+        document.getElementById("auditSearch").value.trim(),
+        document.getElementById("auditActionFilter").value,
+        document.getElementById("auditUserFilter").value.trim(),
+        document.getElementById("auditDateFilter").value
+      );
   }
 
 
   function renderAuditLogs() {
     const tbody = document.getElementById("auditTableBody");
     const emptyState = document.getElementById("auditEmptyState");
+    const pagination = document.getElementById("auditPagination");
 
     if (!auditLogsLoaded) return;
 
-    const search = document.getElementById("auditSearch")
-      .value.trim().toLowerCase();
-
-    const actionFilter = document.getElementById("auditActionFilter")
-      .value.toUpperCase();
-
-    const userFilter = document.getElementById("auditUserFilter").value;
-    const dateFilter = document.getElementById("auditDateFilter").value;
-
-    const filteredLogs = auditLogsData.filter(function(log) {
-      const searchable = [
-        log.invoiceNumber,
-        log.action,
-        log.field,
-        log.oldValue,
-        log.newValue,
-        log.reason,
-        log.user,
-        log.userRole,
-        log.transactionId
-      ].map(function(value) {
-        return value == null ? "" : String(value);
-      }).join(" ").toLowerCase();
-
-      if (search && !searchable.includes(search)) return false;
-
-      if (
-        actionFilter &&
-        String(log.action || "").toUpperCase() !== actionFilter
-      ) {
-        return false;
-      }
-
-      if (userFilter && String(log.user || "") !== userFilter) {
-        return false;
-      }
-
-      if (dateFilter && getAuditDate(log.timestamp) !== dateFilter) {
-        return false;
-      }
-
-      return true;
-    });
-
     tbody.replaceChildren();
-
     document.getElementById("auditTotalCount").textContent =
-      "Showing " + filteredLogs.length +
-      " of " + auditLogsData.length + " audit entries";
+      "Showing " + auditLogsData.length + " of " +
+      auditLogsTotalCount + " audit entries";
 
-    emptyState.style.display = filteredLogs.length ? "none" : "block";
+    emptyState.style.display = auditLogsData.length ? "none" : "block";
 
-    if (!filteredLogs.length) return;
-
-    filteredLogs.forEach(function(log) {
+    auditLogsData.forEach(function(log) {
       const row = document.createElement("tr");
 
       appendAuditCell(row, formatAuditTimestamp(log.timestamp));
@@ -6252,6 +6185,37 @@ function getAllowedStatusCorrections(record) {
 
       tbody.appendChild(row);
     });
+
+    pagination.replaceChildren();
+    const pageLabel = document.createElement("span");
+    pageLabel.textContent = auditLogsTotalCount
+      ? "Page " + auditLogsPage + " of " + auditLogsTotalPages
+      : "Page 0 of 0";
+
+    const controls = document.createElement("div");
+    controls.style.cssText = "display:flex;gap:8px;";
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.className = "refresh-button";
+    previous.textContent = "← Previous";
+    previous.disabled = auditLogsPage <= 1 || auditLogsLoading;
+    previous.addEventListener("click", function() {
+      loadAuditLogs(auditLogsPage - 1);
+    });
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "refresh-button";
+    next.textContent = "Next →";
+    next.disabled = auditLogsPage >= auditLogsTotalPages || auditLogsLoading;
+    next.addEventListener("click", function() {
+      loadAuditLogs(auditLogsPage + 1);
+    });
+
+    controls.appendChild(previous);
+    controls.appendChild(next);
+    pagination.appendChild(pageLabel);
+    pagination.appendChild(controls);
   }
 
 
@@ -6308,7 +6272,7 @@ function getAllowedStatusCorrections(record) {
     document.getElementById("auditUserFilter").value = "";
     document.getElementById("auditDateFilter").value = "";
 
-    renderAuditLogs();
+    loadAuditLogs(1);
   }
 
 
