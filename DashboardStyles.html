@@ -1286,16 +1286,20 @@
   }
 
 
-  /* Delivery table alignment: detail columns left; status and action columns right. */
-  .delivery-table th,
-  .delivery-table td {
-    text-align: left;
+  /* Enforce alignment in the Delivery Records table, including full-screen layouts.
+     Detail columns stay left; Status and Action stay right. */
+  #dashboardView #deliverySection .delivery-table th:not(.delivery-status-header):not(.delivery-action-header),
+  #dashboardView #deliverySection .delivery-table td:not(.delivery-status-cell):not(.delivery-action-cell) {
+    text-align: left !important;
   }
-  .delivery-table th.delivery-status-header,
-  .delivery-table th.delivery-action-header,
-  .delivery-table td.delivery-status-cell,
-  .delivery-table td.delivery-action-cell {
-    text-align: right;
+  #dashboardView #deliverySection .delivery-table th.delivery-status-header,
+  #dashboardView #deliverySection .delivery-table th.delivery-action-header,
+  #dashboardView #deliverySection .delivery-table td.delivery-status-cell,
+  #dashboardView #deliverySection .delivery-table td.delivery-action-cell {
+    text-align: right !important;
+  }
+  #dashboardView #deliverySection .delivery-table td.delivery-status-cell .status-label {
+    margin-left: auto;
   }
 
 </style>
