@@ -1006,36 +1006,104 @@ function odooFormatAuditLog_(log) {
  *
  * Used by the main website AUDIT LOGS tab.
  */
-function getDeliveryAuditLogs(token) {
+function getDeliveryAuditLogs(token, page, pageSize, searchTerm, actionFilter, userFilter, dateFilter) {
   validateAuditLogAccess_(token);
 
-  const connection = odooGetConnection_();
+  const currentPage = Math.max(1, parseInt(page, 10) || 1);
+  const requestedPageSize = parseInt(pageSize, 10) || 100;
+  const limit = Math.min(100, Math.max(1, requestedPageSize));
+  const search = String(searchTerm || "").trim();
+  const action = String(actionFilter || "").trim().toUpperCase();
+  const user = String(userFilter || "").trim();
+  const selectedDate = String(dateFilter || "").trim();
 
-  const logs = odooSearchReadAll_(
+  const domain = [];
+
+  if (action) {
+    domain.push(["x_studio_action", "=", action]);
+  }
+
+  if (user) {
+    domain.push(["x_studio_user", "ilike", user]);
+  }
+
+  if (selectedDate) {
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedDate)) {
+      throw new Error("Invalid audit log date filter.");
+    }
+    domain.push(
+      ["x_studio_deliver_monitoring_timestamp", ">=", selectedDate + " 00:00:00"],
+      ["x_studio_deliver_monitoring_timestamp", "<=", selectedDate + " 23:59:59"]
+    );
+  }
+
+  if (search) {
+    const searchableFields = [
+      "x_studio_invoice_number",
+      "x_studio_action",
+      "x_studio_field",
+      "x_studio_old_value",
+      "x_studio_new_value",
+      "x_studio_change_justification",
+      "x_studio_user",
+      "x_studio_user_role",
+      "x_studio_transaction_id"
+    ];
+    for (let i = 1; i < searchableFields.length; i++) {
+      domain.push("|");
+    }
+    searchableFields.forEach(function(field) {
+      domain.push([field, "ilike", search]);
+    });
+  }
+
+  const connection = odooGetConnection_();
+  const totalCount = Number(odooExecuteKw_(
     connection,
     "x_delivery_audit_logs",
-    [],
-    [
-      "id",
-      "x_name",
-      "x_studio_action",
-      "x_studio_change_justification",
-      "x_studio_deliver_monitoring_timestamp",
-      "x_studio_delivery_record",
-      "x_studio_field",
-      "x_studio_invoice_number",
-      "x_studio_new_value",
-      "x_studio_old_value",
-      "x_studio_transaction_id",
-      "x_studio_user",
-      "x_studio_user_role"
-    ],
-    "x_studio_deliver_monitoring_timestamp desc, id desc"
+    "search_count",
+    [domain]
+  )) || 0;
+  const totalPages = Math.ceil(totalCount / limit);
+  const safePage = totalPages ? Math.min(currentPage, totalPages) : 1;
+
+  const logs = odooExecuteKw_(
+    connection,
+    "x_delivery_audit_logs",
+    "search_read",
+    [domain],
+    {
+      fields: [
+        "id",
+        "x_name",
+        "x_studio_action",
+        "x_studio_change_justification",
+        "x_studio_deliver_monitoring_timestamp",
+        "x_studio_delivery_record",
+        "x_studio_field",
+        "x_studio_invoice_number",
+        "x_studio_new_value",
+        "x_studio_old_value",
+        "x_studio_transaction_id",
+        "x_studio_user",
+        "x_studio_user_role"
+      ],
+      limit: limit,
+      offset: (safePage - 1) * limit,
+      order: "x_studio_deliver_monitoring_timestamp desc, id desc"
+    }
   );
+
+  if (!Array.isArray(logs)) {
+    throw new Error("Unexpected response while retrieving audit logs.");
+  }
 
   return {
     success: true,
-    totalCount: logs.length,
+    page: safePage,
+    pageSize: limit,
+    totalCount: totalCount,
+    totalPages: totalPages,
     logs: logs.map(odooFormatAuditLog_)
   };
 }
