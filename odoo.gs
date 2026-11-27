@@ -1002,7 +1002,7 @@ function odooFormatAuditLog_(log) {
 
 
 /**
- * Retrieve ALL audit logs.
+ * Retrieve one page of audit logs with server-side filters.
  *
  * Used by the main website AUDIT LOGS tab.
  */
@@ -1028,7 +1028,7 @@ function getDeliveryAuditLogs(token, page, pageSize, searchTerm, actionFilter, u
   }
 
   if (selectedDate) {
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedDate)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
       throw new Error("Invalid audit log date filter.");
     }
     domain.push(
